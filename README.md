@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.jonesrobm/physbound -->
 # PhysBound
 
 **Physical Layer Linter** — An MCP server that validates RF and physics calculations against hard physical limits. Catches AI hallucinations in engineering workflows.
@@ -33,9 +34,9 @@ LLMs routinely hallucinate physics. PhysBound catches it:
 pip install physbound
 ```
 
-### Use with Claude Desktop
+### MCP Client Configuration
 
-Add to your `claude_desktop_config.json`:
+Add PhysBound to any MCP-compatible client. For example, in Claude Desktop (`claude_desktop_config.json`), Cursor, or Windsurf:
 
 ```json
 {
@@ -48,7 +49,7 @@ Add to your `claude_desktop_config.json`:
 }
 ```
 
-That's it. Claude now has access to physics-validated RF calculations.
+Your AI assistant now has access to physics-validated RF calculations.
 
 ---
 
