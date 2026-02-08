@@ -1,0 +1,8 @@
+startCommand:
+  type: stdio
+  configSchema: {}
+  commandFunction: |-
+    (config) => ({
+      command: 'uv',
+      args: ['run', '--from', 'physbound', 'physbound']
+    })
