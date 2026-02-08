@@ -1,4 +1,4 @@
-<!-- mcp-name: io.github.jonesrobm/physbound -->
+<!-- mcp-name: io.github.JonesRobM/physbound -->
 # PhysBound
 
 **Physical Layer Linter** — An MCP server that validates RF and physics calculations against hard physical limits. Catches AI hallucinations in engineering workflows.

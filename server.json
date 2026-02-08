@@ -1,17 +1,17 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
-  "name": "io.github.jonesrobm/physbound",
-  "description": "Physical Layer Linter — validates RF and physics calculations against hard physical limits. Catches AI hallucinations in RF link budgets, Shannon-Hartley capacity, and thermal noise calculations.",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.JonesRobM/physbound",
+  "description": "Physical Layer Linter — validates RF link budgets, Shannon capacity, and noise floors.",
   "repository": {
     "url": "https://github.com/JonesRobM/physbound",
     "source": "github"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "physbound",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "transport": {
         "type": "stdio"
       }
