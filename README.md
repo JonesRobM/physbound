@@ -1,8 +1,11 @@
 <!-- mcp-name: io.github.JonesRobM/physbound -->
+<!-- keywords: MCP server, physics validation, RF link budget, Shannon-Hartley, thermal noise, antenna gain, AI hallucination detection, physical layer linter, Friis equation, FSPL, signal processing, telecommunications -->
 # PhysBound
 
-**Physical Layer Linter** — An MCP server that validates RF and physics calculations against hard physical limits. Catches AI hallucinations in engineering workflows.
+**Physical Layer Linter** — An [MCP server](https://modelcontextprotocol.io) that validates RF and physics calculations against hard physical limits. Catches AI hallucinations in engineering workflows.
 
+[![PyPI](https://img.shields.io/pypi/v/physbound.svg)](https://pypi.org/project/physbound/)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-green.svg)](https://registry.modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-107%20passed-brightgreen.svg)]()
@@ -112,6 +115,25 @@ uv run pytest tests/test_marketing.py -s
 uv run physbound
 ```
 
+## Why PhysBound?
+
+AI coding assistants are increasingly used in RF engineering, telecommunications, and signal processing workflows. But LLMs have no intrinsic understanding of physics — they generate plausible-sounding numbers that can violate fundamental laws like Shannon-Hartley, thermodynamic noise limits, and antenna aperture bounds.
+
+PhysBound acts as a **physics guardrail** for any MCP-compatible AI assistant. Every calculation is checked against CODATA physical constants via SciPy, with dimensional analysis enforced through Pint. Violations return structured errors with LaTeX explanations — not silent failures.
+
+### Use cases
+
+- **RF system design review** — validate link budgets, receiver sensitivity, and noise cascades
+- **Telecom proposal vetting** — catch impossible throughput claims before they reach a customer
+- **Educational tools** — teach Shannon-Hartley, Friis transmission, and thermal noise with verified calculations
+- **CI/CD for physics** — integrate as a validation step in engineering pipelines
+
 ## License
 
 MIT License. See [LICENSE](LICENSE).
+
+## Related
+
+- [Model Context Protocol](https://modelcontextprotocol.io) — the open standard for AI tool integration
+- [MCP Server Registry](https://registry.modelcontextprotocol.io) — official directory of MCP servers
+- [FastMCP](https://github.com/jlowin/fastmcp) — Python framework for building MCP servers

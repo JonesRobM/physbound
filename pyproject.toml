@@ -1,6 +1,6 @@
 [project]
 name = "physbound"
-version = "0.1.1"
+version = "0.1.2"
 description = "Physical Layer Linter — validates RF and physics calculations against hard physical limits"
 readme = "README.md"
 license = "MIT"
@@ -8,13 +8,34 @@ requires-python = ">=3.12"
 authors = [
     { name = "Robert Jones", email = "jonesrobm@gmail.com" },
 ]
+keywords = [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "physics",
+    "rf-engineering",
+    "link-budget",
+    "shannon-hartley",
+    "thermal-noise",
+    "antenna",
+    "signal-processing",
+    "validation",
+    "ai-hallucination",
+    "telecommunications",
+    "friis-equation",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Intended Audience :: Telecommunications Industry",
+    "Intended Audience :: Education",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Topic :: Communications",
+    "Typing :: Typed",
 ]
 dependencies = [
     "fastmcp==2.14.5",
