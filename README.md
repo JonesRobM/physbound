@@ -9,6 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-107%20passed-brightgreen.svg)]()
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20PhysBound-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/jonesrobm)
 
 ---
 
@@ -127,6 +128,10 @@ PhysBound acts as a **physics guardrail** for any MCP-compatible AI assistant. E
 - **Telecom proposal vetting** — catch impossible throughput claims before they reach a customer
 - **Educational tools** — teach Shannon-Hartley, Friis transmission, and thermal noise with verified calculations
 - **CI/CD for physics** — integrate as a validation step in engineering pipelines
+
+## Support
+
+If PhysBound is useful in your work, consider [buying me a coffee](https://ko-fi.com/jonesrobm).
 
 ## License
 
