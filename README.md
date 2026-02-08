@@ -1,6 +1,11 @@
 <!-- mcp-name: io.github.JonesRobM/physbound -->
 <!-- keywords: MCP server, physics validation, RF link budget, Shannon-Hartley, thermal noise, antenna gain, AI hallucination detection, physical layer linter, Friis equation, FSPL, signal processing, telecommunications -->
-# PhysBound
+
+<p align="center">
+  <img src="Avatar.png" alt="PhysBound" width="200">
+</p>
+
+<h1 align="center">PhysBound</h1>
 
 **Physical Layer Linter** — An [MCP server](https://modelcontextprotocol.io) that validates RF and physics calculations against hard physical limits. Catches AI hallucinations in engineering workflows.
 
