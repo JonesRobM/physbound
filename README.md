@@ -9,11 +9,12 @@
 
 **Physical Layer Linter** — An [MCP server](https://modelcontextprotocol.io) that validates RF and physics calculations against hard physical limits. Catches AI hallucinations in engineering workflows.
 
+[![CI](https://github.com/JonesRobM/physbound/actions/workflows/ci.yml/badge.svg)](https://github.com/JonesRobM/physbound/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/JonesRobM/physbound/graph/badge.svg)](https://codecov.io/gh/JonesRobM/physbound)
 [![PyPI](https://img.shields.io/pypi/v/physbound.svg)](https://pypi.org/project/physbound/)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-green.svg)](https://registry.modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![Tests](https://img.shields.io/badge/tests-107%20passed-brightgreen.svg)]()
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20PhysBound-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/jonesrobm)
 
 ---
@@ -30,6 +31,10 @@ LLMs routinely hallucinate physics. PhysBound catches it:
 | 4 | Thermal Noise | "Noise floor of -180 dBm/Hz at room temperature" | Actual: **-174.0 dBm/Hz** at 290K | CAUGHT |
 | 5 | Link Budget | "Wi-Fi at 2.4 GHz reaches 10 km at -40 dBm" | Actual RX power: **-94.1 dBm** | CAUGHT |
 | 6 | Link Budget | "1W to GEO with 0 dBi antennas at -80 dBm" | Actual RX power: **-175.1 dBm** | CAUGHT |
+| 7 | Link Budget | "Bluetooth reaches 1 km at -60 dBm" | Actual RX power: **-100.0 dBm** | CAUGHT |
+| 8 | Shannon-Hartley | "10 MHz LTE at 10 dB SNR supports 1 Gbps" | Shannon limit: **34.6 Mbps** | CAUGHT |
+| 9 | Noise Cascade | "Stage order doesn't affect system NF" | LNA first: **1.57 dB** vs mixer first: **8.03 dB** | CAUGHT |
+| 10 | Antenna Aperture | "10 cm patch at 900 MHz provides 20 dBi" | Aperture limit: **-3.1 dBi** | CAUGHT |
 
 *Generated automatically by `pytest tests/test_marketing.py -s`*
 
@@ -100,6 +105,15 @@ Every calculation is validated against hard physical limits:
 - **Aperture limit:** `G_max = eta * (pi * D / lambda)^2` — antenna gain is bounded by physics
 
 Violations return structured `PhysicalViolationError` responses with LaTeX explanations, not silent failures.
+
+---
+
+## Examples
+
+See PhysBound catching hallucinations in real time:
+
+- **[Catching Hallucinations](examples/catching-hallucinations.md)** — walkthrough of four real LLM failure modes with full JSON responses
+- **[Interactive Demo Notebook](examples/physbound-demo.ipynb)** — hands-on Jupyter notebook calling the physics engines directly
 
 ---
 

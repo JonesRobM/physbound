@@ -10,8 +10,16 @@ import math
 
 import pytest
 
-from physbound.engines.link_budget import compute_link_budget, free_space_path_loss_db
-from physbound.engines.noise import thermal_noise_power_dbm
+from physbound.engines.link_budget import (
+    compute_link_budget,
+    free_space_path_loss_db,
+    max_aperture_gain_dbi,
+)
+from physbound.engines.noise import (
+    friis_noise_cascade,
+    receiver_sensitivity_dbm,
+    thermal_noise_power_dbm,
+)
 from physbound.engines.shannon import (
     channel_capacity_bps,
     snr_db_to_linear,
@@ -55,6 +63,30 @@ HALLUCINATION_CASES = [
         "hallucination": "A 1W transmitter at 12 GHz with 0 dBi antennas reaches GEO at -80 dBm",
         "truth": None,
         "category": "Link Budget / FSPL",
+    },
+    {
+        "id": "bluetooth_1km_range",
+        "hallucination": "Bluetooth at 2.4 GHz with 0 dBm TX and 0 dBi antennas reaches 1 km at -60 dBm",
+        "truth": None,
+        "category": "Link Budget / FSPL",
+    },
+    {
+        "id": "lte_narrowband_gigabit",
+        "hallucination": "A 10 MHz LTE channel at 10 dB SNR supports 1 Gbps",
+        "truth": None,
+        "category": "Shannon-Hartley",
+    },
+    {
+        "id": "cascade_order_irrelevant",
+        "hallucination": "Receiver NF is the same regardless of stage order: LNA(20dB/1.5dB) + Mixer(10dB/8dB)",
+        "truth": None,
+        "category": "Noise Cascade",
+    },
+    {
+        "id": "small_antenna_c_band",
+        "hallucination": "A 10 cm patch antenna at 900 MHz provides 20 dBi gain",
+        "truth": None,
+        "category": "Antenna Aperture",
     },
 ]
 
@@ -146,6 +178,70 @@ class TestLinkBudgetHallucinations:
         assert prx < -80, "0 dBi antennas to GEO at 12 GHz should be far below -80 dBm"
         HALLUCINATION_CASES[5]["truth"] = (
             f"Actual RX power at GEO: {prx:.1f} dBm (not -80 dBm)"
+        )
+
+
+class TestLinkBudgetHallucinations2:
+    def test_bluetooth_1km_range(self):
+        """LLMs overestimate Bluetooth range (Class 2: 0 dBm / 1 mW)."""
+        result = compute_link_budget(
+            tx_power_dbm=0,  # 1 mW = 0 dBm (Bluetooth Class 2)
+            tx_antenna_gain_dbi=0,
+            rx_antenna_gain_dbi=0,
+            frequency_hz=2.4e9,
+            distance_m=1000,
+        )
+        prx = result["received_power_dbm"]
+        assert prx < -60, "Bluetooth at 1 km should be well below -60 dBm"
+        HALLUCINATION_CASES[6]["truth"] = (
+            f"Actual RX power at 1 km: {prx:.1f} dBm (not -60 dBm)"
+        )
+
+
+class TestShannonHallucinations2:
+    def test_lte_narrowband_gigabit(self):
+        """LLMs claim gigabit speeds on narrow LTE channels."""
+        snr = snr_db_to_linear(10.0)
+        capacity = channel_capacity_bps(10e6, snr)
+        assert capacity < 1e9, "10 MHz at 10 dB SNR cannot reach 1 Gbps"
+        with pytest.raises(PhysicalViolationError, match="Shannon"):
+            validate_throughput_claim(10e6, snr, 1e9)
+        HALLUCINATION_CASES[7]["truth"] = (
+            f"Shannon limit: {capacity / 1e6:.1f} Mbps (not 1000 Mbps)"
+        )
+
+
+class TestNoiseCascadeHallucinations:
+    def test_cascade_order_matters(self):
+        """LLMs claim stage order doesn't affect system noise figure."""
+        # Good order: LNA first
+        nf_good = friis_noise_cascade([(20.0, 1.5), (10.0, 8.0)])
+        # Bad order: mixer first
+        nf_bad = friis_noise_cascade([(10.0, 8.0), (20.0, 1.5)])
+        # The difference is substantial
+        penalty = nf_bad - nf_good
+        assert penalty > 5, "Swapping LNA/mixer order should degrade NF by >5 dB"
+        HALLUCINATION_CASES[8]["truth"] = (
+            f"LNA first: {nf_good:.2f} dB vs mixer first: {nf_bad:.2f} dB "
+            f"(penalty: {penalty:.1f} dB)"
+        )
+
+
+class TestAntennaHallucinations2:
+    def test_small_antenna_c_band(self):
+        """LLMs overestimate gain for small antennas at low frequencies."""
+        with pytest.raises(PhysicalViolationError, match="Aperture"):
+            compute_link_budget(
+                tx_power_dbm=20,
+                tx_antenna_gain_dbi=20,
+                rx_antenna_gain_dbi=0,
+                frequency_hz=900e6,
+                distance_m=1000,
+                tx_antenna_diameter_m=0.1,
+            )
+        g_max = max_aperture_gain_dbi(0.1, 900e6)
+        HALLUCINATION_CASES[9]["truth"] = (
+            f"Max gain: {g_max:.1f} dBi for 0.1 m antenna at 900 MHz (not 20 dBi)"
         )
 
 

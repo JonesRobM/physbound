@@ -11,6 +11,7 @@ from fastmcp import FastMCP
 from physbound.engines import link_budget as lb_engine
 from physbound.engines import noise as nz_engine
 from physbound.engines import shannon as sh_engine
+from physbound.engines.constants import BOLTZMANN
 from physbound.engines.units import db_to_linear, linear_to_db
 from physbound.errors import PhysicalViolationError
 from physbound.models.link_budget import LinkBudgetInput, LinkBudgetOutput
@@ -246,8 +247,9 @@ def noise_floor(
         if sensitivity_dbm is not None:
             human_readable += f"\n  Sensitivity: {sensitivity_dbm:.2f} dBm"
 
+        k_b = BOLTZMANN.magnitude
         latex = (
-            rf"$N = k_B T B = {BOLTZMANN_VAL:.4e} \times {params.temperature_k:.1f} "
+            rf"$N = k_B T B = {k_b:.4e} \times {params.temperature_k:.1f} "
             rf"\times {params.bandwidth_hz:.0f} = {n_dbm:.2f}\,\text{{dBm}}$"
         )
 
@@ -264,10 +266,6 @@ def noise_floor(
 
     except PhysicalViolationError as e:
         return e.to_dict()
-
-
-# Constant for LaTeX rendering
-BOLTZMANN_VAL = 1.380649e-23
 
 
 def main():
