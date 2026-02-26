@@ -19,6 +19,7 @@ wheels/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+.hypothesis/
 .secrets.baseline
 
 # IDE

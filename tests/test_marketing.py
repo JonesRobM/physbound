@@ -83,7 +83,7 @@ HALLUCINATION_CASES = [
         "category": "Noise Cascade",
     },
     {
-        "id": "small_antenna_c_band",
+        "id": "small_antenna_uhf",
         "hallucination": "A 10 cm patch antenna at 900 MHz provides 20 dBi gain",
         "truth": None,
         "category": "Antenna Aperture",
@@ -228,7 +228,7 @@ class TestNoiseCascadeHallucinations:
 
 
 class TestAntennaHallucinations2:
-    def test_small_antenna_c_band(self):
+    def test_small_antenna_uhf(self):
         """LLMs overestimate gain for small antennas at low frequencies."""
         with pytest.raises(PhysicalViolationError, match="Aperture"):
             compute_link_budget(

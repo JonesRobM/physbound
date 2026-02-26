@@ -27,9 +27,9 @@ PhysBound's `shannon_hartley` tool is called automatically:
   "error": true,
   "violation_type": "PhysicalViolationError",
   "law_violated": "Shannon-Hartley Theorem",
-  "message": "Claimed throughput 500000000.0 bps exceeds Shannon limit of 100584898.2 bps by 397.1%",
+  "message": "Claimed throughput 500000000.0 bps exceeds Shannon limit of 100556153.5 bps by 397.2%",
   "latex_explanation": "$C = B \\log_2(1 + \\text{SNR}) = 100.6\\,\\text{Mbps} < 500.0\\,\\text{Mbps}$",
-  "computed_limit": 100584898.2,
+  "computed_limit": 100556153.5,
   "claimed_value": 500000000.0,
   "unit": "bps"
 }
@@ -125,16 +125,16 @@ PhysBound's `noise_floor` tool with cascading:
 
 ```json
 {
-  "thermal_noise_dbm": -104.0,
-  "thermal_noise_watts": 4.0e-14,
-  "cascaded_noise_figure_db": 1.57,
-  "system_noise_temp_k": 126.42,
-  "receiver_sensitivity_dbm": -92.43,
-  "human_readable": "Thermal Noise Floor:\n  Temperature: 290.0 K\n  Bandwidth:   10.000 MHz\n  Noise Power: -104.00 dBm (4.00e-14 W)\n  Cascaded NF: 1.57 dB\n  Sensitivity: -92.43 dBm"
+  "thermal_noise_dbm": -103.98,
+  "thermal_noise_watts": 3.99e-14,
+  "cascaded_noise_figure_db": 1.66,
+  "system_noise_temp_k": 135.03,
+  "receiver_sensitivity_dbm": -92.31,
+  "human_readable": "Thermal Noise Floor:\n  Temperature: 290.0 K\n  Bandwidth:   10.000 MHz\n  Noise Power: -103.98 dBm (3.99e-14 W)\n  Cascaded NF: 1.66 dB\n  Sensitivity: -92.31 dBm"
 }
 ```
 
-The Friis noise cascade shows that the LNA's low noise figure dominates — the 8 dB mixer NF is suppressed by the LNA's 20 dB gain to contribute only ~0.07 dB to the system NF. This is why **LNA-first order matters** in receiver design.
+The Friis noise cascade shows that the LNA's low noise figure dominates — the 8 dB mixer NF is suppressed by the LNA's 20 dB gain to contribute only ~0.16 dB to the system NF. This is why **LNA-first order matters** in receiver design.
 
 ---
 

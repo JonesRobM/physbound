@@ -31,9 +31,9 @@ LLMs routinely hallucinate physics. PhysBound catches it:
 | 4 | Thermal Noise | "Noise floor of -180 dBm/Hz at room temperature" | Actual: **-174.0 dBm/Hz** at 290K | CAUGHT |
 | 5 | Link Budget | "Wi-Fi at 2.4 GHz reaches 10 km at -40 dBm" | Actual RX power: **-94.1 dBm** | CAUGHT |
 | 6 | Link Budget | "1W to GEO with 0 dBi antennas at -80 dBm" | Actual RX power: **-175.1 dBm** | CAUGHT |
-| 7 | Link Budget | "Bluetooth reaches 1 km at -60 dBm" | Actual RX power: **-100.0 dBm** | CAUGHT |
+| 7 | Link Budget | "Bluetooth reaches 1 km at -60 dBm" | Actual RX power: **-100.1 dBm** | CAUGHT |
 | 8 | Shannon-Hartley | "10 MHz LTE at 10 dB SNR supports 1 Gbps" | Shannon limit: **34.6 Mbps** | CAUGHT |
-| 9 | Noise Cascade | "Stage order doesn't affect system NF" | LNA first: **1.57 dB** vs mixer first: **8.03 dB** | CAUGHT |
+| 9 | Noise Cascade | "Stage order doesn't affect system NF" | LNA first: **1.66 dB** vs mixer first: **8.03 dB** | CAUGHT |
 | 10 | Antenna Aperture | "10 cm patch at 900 MHz provides 20 dBi" | Aperture limit: **-3.1 dBi** | CAUGHT |
 
 *Generated automatically by `pytest tests/test_marketing.py -s`*
