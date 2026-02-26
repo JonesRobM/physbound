@@ -15,6 +15,7 @@
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-green.svg)](https://registry.modelcontextprotocol.io)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![MCP Badge](https://lobehub.com/badge/mcp/jonesrobm-physbound)](https://lobehub.com/mcp/jonesrobm-physbound)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20PhysBound-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/jonesrobm)
 
 ---
