@@ -150,9 +150,9 @@ uv run physbound
 
 ## Why PhysBound?
 
-AI coding assistants are increasingly used in RF engineering, telecommunications, and signal processing workflows. But LLMs have no intrinsic understanding of physics — they generate plausible-sounding numbers that can violate fundamental laws like Shannon-Hartley, thermodynamic noise limits, and antenna aperture bounds.
+AI coding assistants are increasingly used in RF engineering, telecommunications, and signal processing workflows. But LLMs have no intrinsic understanding of physics. They generate plausible-sounding numbers that can violate fundamental laws like Shannon-Hartley, thermodynamic noise limits, and antenna aperture bounds.
 
-PhysBound acts as a **physics guardrail** for any MCP-compatible AI assistant. Every calculation is checked against CODATA physical constants via SciPy, with dimensional analysis enforced through Pint. Violations return structured errors with LaTeX explanations — not silent failures.
+PhysBound acts as a **physics guardrail** for any MCP-compatible AI assistant. Every calculation is checked against CODATA physical constants via SciPy, with dimensional analysis enforced through Pint. Violations return structured errors with LaTeX explanations, not silent failures.
 
 ### Use cases
 
