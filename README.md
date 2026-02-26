@@ -56,12 +56,14 @@ Add PhysBound to any MCP-compatible client. For example, in Claude Desktop (`cla
 {
   "mcpServers": {
     "physbound": {
-      "command": "uv",
-      "args": ["run", "--from", "physbound", "physbound"]
+      "command": "uvx",
+      "args": ["physbound"]
     }
   }
 }
 ```
+
+> **First run:** `uvx` downloads ~60 MB of dependencies (scipy, numpy) on first launch. Run `uvx physbound` once in your terminal to pre-cache them — subsequent starts will be instant.
 
 Your AI assistant now has access to physics-validated RF calculations.
 

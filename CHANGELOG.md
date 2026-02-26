@@ -15,6 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - CHANGELOG.md
 - Property-based tests with Hypothesis (19 invariant tests)
 - 4 new hallucination cases in marketing test suite (Bluetooth range, LTE capacity, noise cascade ordering, small antenna UHF)
+- MCP integration tests using FastMCP Client (8 end-to-end round-trip tests)
 - GitHub Sponsors funding option
 - Automated PyPI publish workflow on git tags
 
