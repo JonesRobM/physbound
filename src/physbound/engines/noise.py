@@ -8,7 +8,7 @@ Formulas:
 
 import math
 
-from physbound.engines.constants import BOLTZMANN, T_REF
+from physbound.engines.constants import BOLTZMANN
 from physbound.engines.units import db_to_linear, linear_to_db
 from physbound.errors import PhysicalViolationError
 from physbound.validators import validate_positive_bandwidth, validate_temperature
@@ -76,7 +76,7 @@ def friis_noise_cascade(
             latex_explanation=r"$F_\text{total}$ requires at least one stage",
         )
 
-    for i, (gain_db, nf_db) in enumerate(stages):
+    for i, (_gain_db, nf_db) in enumerate(stages):
         if nf_db < 0:
             raise PhysicalViolationError(
                 message=f"Stage {i + 1} noise figure is {nf_db} dB (negative); "

@@ -179,8 +179,12 @@ def compute_link_budget(
     # Compute FSPL and received power
     fspl = free_space_path_loss_db(frequency_hz, distance_m)
     received_power_dbm = (
-        tx_power_dbm + tx_antenna_gain_dbi + rx_antenna_gain_dbi
-        - fspl - tx_losses_db - rx_losses_db
+        tx_power_dbm
+        + tx_antenna_gain_dbi
+        + rx_antenna_gain_dbi
+        - fspl
+        - tx_losses_db
+        - rx_losses_db
     )
 
     c = SPEED_OF_LIGHT.magnitude

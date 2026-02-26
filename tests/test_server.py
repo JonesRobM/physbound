@@ -1,7 +1,5 @@
 """MCP server integration tests — verify tool invocation and response shapes."""
 
-import pytest
-
 from physbound.server import mcp
 
 

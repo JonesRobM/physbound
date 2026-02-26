@@ -6,18 +6,14 @@ that PhysBound correctly catches (or correctly computes) the truth.
 Run with `pytest tests/test_marketing.py -s` to print the Markdown delta table.
 """
 
-import math
-
 import pytest
 
 from physbound.engines.link_budget import (
     compute_link_budget,
-    free_space_path_loss_db,
     max_aperture_gain_dbi,
 )
 from physbound.engines.noise import (
     friis_noise_cascade,
-    receiver_sensitivity_dbm,
     thermal_noise_power_dbm,
 )
 from physbound.engines.shannon import (
@@ -66,7 +62,9 @@ HALLUCINATION_CASES = [
     },
     {
         "id": "bluetooth_1km_range",
-        "hallucination": "Bluetooth at 2.4 GHz with 0 dBm TX and 0 dBi antennas reaches 1 km at -60 dBm",
+        "hallucination": (
+            "Bluetooth at 2.4 GHz with 0 dBm TX and 0 dBi antennas reaches 1 km at -60 dBm"
+        ),
         "truth": None,
         "category": "Link Budget / FSPL",
     },
@@ -78,7 +76,9 @@ HALLUCINATION_CASES = [
     },
     {
         "id": "cascade_order_irrelevant",
-        "hallucination": "Receiver NF is the same regardless of stage order: LNA(20dB/1.5dB) + Mixer(10dB/8dB)",
+        "hallucination": (
+            "Receiver NF is the same regardless of stage order: LNA(20dB/1.5dB) + Mixer(10dB/8dB)"
+        ),
         "truth": None,
         "category": "Noise Cascade",
     },
@@ -100,9 +100,7 @@ class TestShannonHallucinations:
         with pytest.raises(PhysicalViolationError, match="Shannon"):
             validate_throughput_claim(20e6, snr, 500e6)
         # Record truth
-        HALLUCINATION_CASES[0]["truth"] = (
-            f"Shannon limit: {capacity / 1e6:.1f} Mbps (not 500 Mbps)"
-        )
+        HALLUCINATION_CASES[0]["truth"] = f"Shannon limit: {capacity / 1e6:.1f} Mbps (not 500 Mbps)"
 
     def test_5g_throughput_fantasy(self):
         """LLMs overestimate 5G single-carrier throughput."""
@@ -160,9 +158,7 @@ class TestLinkBudgetHallucinations:
         )
         prx = result["received_power_dbm"]
         assert prx < -40, "RX power at 10 km should be much weaker than -40 dBm"
-        HALLUCINATION_CASES[4]["truth"] = (
-            f"Actual RX power at 10 km: {prx:.1f} dBm (not -40 dBm)"
-        )
+        HALLUCINATION_CASES[4]["truth"] = f"Actual RX power at 10 km: {prx:.1f} dBm (not -40 dBm)"
 
     def test_satellite_link_fantasy(self):
         """LLMs underestimate GEO satellite path loss."""
@@ -176,9 +172,7 @@ class TestLinkBudgetHallucinations:
         )
         prx = result["received_power_dbm"]
         assert prx < -80, "0 dBi antennas to GEO at 12 GHz should be far below -80 dBm"
-        HALLUCINATION_CASES[5]["truth"] = (
-            f"Actual RX power at GEO: {prx:.1f} dBm (not -80 dBm)"
-        )
+        HALLUCINATION_CASES[5]["truth"] = f"Actual RX power at GEO: {prx:.1f} dBm (not -80 dBm)"
 
 
 class TestLinkBudgetHallucinations2:
@@ -193,9 +187,7 @@ class TestLinkBudgetHallucinations2:
         )
         prx = result["received_power_dbm"]
         assert prx < -60, "Bluetooth at 1 km should be well below -60 dBm"
-        HALLUCINATION_CASES[6]["truth"] = (
-            f"Actual RX power at 1 km: {prx:.1f} dBm (not -60 dBm)"
-        )
+        HALLUCINATION_CASES[6]["truth"] = f"Actual RX power at 1 km: {prx:.1f} dBm (not -60 dBm)"
 
 
 class TestShannonHallucinations2:
@@ -259,9 +251,7 @@ def test_generate_markdown_table(capsys):
 
     for i, case in enumerate(HALLUCINATION_CASES, 1):
         truth = case["truth"] or "(run full suite to populate)"
-        rows.append(
-            f"| {i} | {case['category']} | {case['hallucination']} | {truth} | CAUGHT |"
-        )
+        rows.append(f"| {i} | {case['category']} | {case['hallucination']} | {truth} | CAUGHT |")
 
     table = "\n".join([header, separator, *rows])
     print(f"\n\n{'=' * 80}")

@@ -8,7 +8,7 @@ Formulas:
 
 import math
 
-from physbound.engines.units import db_to_linear, linear_to_db
+from physbound.engines.units import db_to_linear
 from physbound.errors import PhysicalViolationError
 from physbound.validators import validate_positive_bandwidth, validate_positive_snr
 
@@ -69,7 +69,6 @@ def validate_throughput_claim(
 
     if claimed_throughput_bps > capacity:
         excess_pct = ((claimed_throughput_bps - capacity) / capacity) * 100.0
-        snr_db = linear_to_db(snr_linear)
         raise PhysicalViolationError(
             message=(
                 f"Claimed throughput {claimed_throughput_bps:.1f} bps exceeds "

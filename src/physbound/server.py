@@ -14,8 +14,8 @@ from physbound.engines import shannon as sh_engine
 from physbound.engines.constants import BOLTZMANN
 from physbound.engines.units import db_to_linear, linear_to_db
 from physbound.errors import PhysicalViolationError
-from physbound.models.link_budget import LinkBudgetInput, LinkBudgetOutput
-from physbound.models.noise import NoiseFloorInput, NoiseFloorOutput
+from physbound.models.link_budget import LinkBudgetOutput
+from physbound.models.noise import NoiseFloorInput, NoiseFloorOutput, NoiseStage
 from physbound.models.shannon import ShannonInput, ShannonOutput
 
 mcp = FastMCP(
@@ -121,10 +121,12 @@ def shannon_hartley(
         )
 
         # Resolve SNR to both representations
+        # Model validator guarantees exactly one of snr_db/snr_linear is set
         if params.snr_db is not None:
             resolved_snr_linear = db_to_linear(params.snr_db)
             resolved_snr_db = params.snr_db
         else:
+            assert params.snr_linear is not None
             resolved_snr_linear = params.snr_linear
             resolved_snr_db = linear_to_db(params.snr_linear)
 
@@ -134,7 +136,7 @@ def shannon_hartley(
         # If throughput claim provided, validate it
         claim_is_valid = None
         excess_percentage = None
-        warnings = []
+        warnings: list[str] = []
 
         if params.claimed_throughput_bps is not None:
             result = sh_engine.validate_throughput_claim(
@@ -208,15 +210,19 @@ def noise_floor(
         params = NoiseFloorInput(
             bandwidth_hz=bandwidth_hz,
             temperature_k=temperature_k,
-            stages=[{"gain_db": s["gain_db"], "noise_figure_db": s["noise_figure_db"]}
-                    for s in stages] if stages else None,
+            stages=[
+                NoiseStage(gain_db=s["gain_db"], noise_figure_db=s["noise_figure_db"])
+                for s in stages
+            ]
+            if stages
+            else None,
             required_snr_db=required_snr_db,
         )
 
         n_dbm = nz_engine.thermal_noise_power_dbm(params.bandwidth_hz, params.temperature_k)
         n_watts = nz_engine.thermal_noise_power_watts(params.bandwidth_hz, params.temperature_k)
 
-        warnings = []
+        warnings: list[str] = []
         cascaded_nf_db = None
         system_noise_temp_k = None
         sensitivity_dbm = None

@@ -1,7 +1,5 @@
 """Tests for unit conversion and dimensional analysis helpers."""
 
-import math
-
 import pytest
 
 from physbound.engines.constants import Q_, ureg

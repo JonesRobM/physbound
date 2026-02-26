@@ -5,10 +5,10 @@ No raw floats should leak into engine code — everything carries units.
 """
 
 import pint
-from scipy import constants as sc
+from scipy import constants as sc  # type: ignore[import-untyped]
 
 # Single shared registry — import this everywhere
-ureg = pint.UnitRegistry()
+ureg: pint.UnitRegistry = pint.UnitRegistry()
 Q_ = ureg.Quantity
 
 # Exact physical constants as Pint quantities (CODATA 2018 exact values)

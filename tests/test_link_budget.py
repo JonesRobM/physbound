@@ -32,9 +32,7 @@ class TestFreeSpacePathLoss:
         # Manual: 20*log10(10) + 20*log10(5e9) + 20*log10(4*pi/c)
         #       = 20 + 194.0 + (-147.55) = 66.4
         expected = (
-            20 * math.log10(10)
-            + 20 * math.log10(5e9)
-            + 20 * math.log10(4 * math.pi / 299792458)
+            20 * math.log10(10) + 20 * math.log10(5e9) + 20 * math.log10(4 * math.pi / 299792458)
         )
         assert abs(fspl - expected) < 0.001
 
@@ -131,8 +129,12 @@ class TestLinkBudget:
         """Output dict must contain all expected keys."""
         result = compute_link_budget(20, 10, 3, 2.4e9, 100)
         required = [
-            "fspl_db", "received_power_dbm", "wavelength_m",
-            "warnings", "human_readable", "latex",
+            "fspl_db",
+            "received_power_dbm",
+            "wavelength_m",
+            "warnings",
+            "human_readable",
+            "latex",
         ]
         for key in required:
             assert key in result

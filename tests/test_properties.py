@@ -6,13 +6,12 @@ not just specific test vectors.
 
 import math
 
-import pytest
-from hypothesis import assume, given, settings
+from hypothesis import assume, given
 from hypothesis import strategies as st
 
 from physbound.engines.link_budget import free_space_path_loss_db, max_aperture_gain_dbi
 from physbound.engines.noise import thermal_noise_power_dbm
-from physbound.engines.shannon import channel_capacity_bps, snr_db_to_linear, spectral_efficiency
+from physbound.engines.shannon import channel_capacity_bps, spectral_efficiency
 from physbound.engines.units import db_to_linear, linear_to_db
 
 # --- Strategy helpers ---
