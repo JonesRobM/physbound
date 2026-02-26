@@ -1,5 +1,5 @@
 <!-- mcp-name: io.github.JonesRobM/physbound -->
-<!-- keywords: MCP server, physics validation, RF link budget, Shannon-Hartley, thermal noise, antenna gain, AI hallucination detection, physical layer linter, Friis equation, FSPL, signal processing, telecommunications -->
+<!-- keywords: MCP server, physics validation, RF link budget, Shannon-Hartley, thermal noise, antenna gain, AI hallucination detection, physical layer linter, Friis equation, FSPL, signal processing, telecommunications, radar range equation, radar cross section, RCS -->
 
 <p align="center">
   <img src="Avatar.png" alt="PhysBound" width="200">
@@ -35,6 +35,8 @@ LLMs routinely hallucinate physics. PhysBound catches it:
 | 8 | Shannon-Hartley | "10 MHz LTE at 10 dB SNR supports 1 Gbps" | Shannon limit: **34.6 Mbps** | CAUGHT |
 | 9 | Noise Cascade | "Stage order doesn't affect system NF" | LNA first: **1.66 dB** vs mixer first: **8.03 dB** | CAUGHT |
 | 10 | Antenna Aperture | "10 cm patch at 900 MHz provides 20 dBi" | Aperture limit: **-3.1 dBi** | CAUGHT |
+| 11 | Radar Range | "Doubling TX power doubles radar range" | Range increases by **1.189x** (2^(1/4)), not 2x | CAUGHT |
+| 12 | Radar Range | "Drone (0.01 m^2 RCS) at 200 km by 1 kW X-band" | Max range: **2.7 km** | CAUGHT |
 
 *Generated automatically by `pytest tests/test_marketing.py -s`*
 
@@ -95,6 +97,14 @@ Computes thermal noise power `N = k_B * T * B`, cascades noise figures through m
 
 Returns: Thermal noise in dBm and watts, cascaded noise figure, system noise temperature, and receiver sensitivity.
 
+### `radar_range`
+
+Computes the monostatic radar range equation `R_max = [P_t G^2 lambda^2 sigma / ((4pi)^3 S_min L)]^(1/4)` and validates detection range claims.
+
+**Example:** *"Can a 1 kW X-band radar with 30 dBi gain detect a 0.01 m^2 drone at 200 km?"*
+
+Returns: Maximum detection range, minimum detectable signal, wavelength, and intermediate values. Catches the common fourth-root fallacy where doubling power is incorrectly assumed to double range.
+
 ---
 
 ## Physics Guarantees
@@ -105,6 +115,7 @@ Every calculation is validated against hard physical limits:
 - **Thermal noise floor:** `N = -174 dBm/Hz` at 290K — the IEEE standard reference
 - **Shannon limit:** `C = B * log2(1 + SNR)` — no throughput claim exceeds this
 - **Aperture limit:** `G_max = eta * (pi * D / lambda)^2` — antenna gain is bounded by physics
+- **Radar range equation:** `R_max = [P_t G^2 lambda^2 sigma / ((4pi)^3 S_min)]^(1/4)` — range obeys the fourth-root law
 
 Violations return structured `PhysicalViolationError` responses with LaTeX explanations, not silent failures.
 

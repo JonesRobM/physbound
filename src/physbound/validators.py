@@ -68,3 +68,27 @@ def validate_positive_snr(snr_linear: float) -> None:
             latex_explanation=r"$\text{SNR} > 0$ required; signal power cannot be non-positive",
             claimed_value=snr_linear,
         )
+
+
+def validate_positive_power(power_w: float) -> None:
+    """Reject non-positive transmit power."""
+    if power_w <= 0:
+        raise PhysicalViolationError(
+            message=f"Transmit power must be positive, got {power_w} W",
+            law_violated="Conservation of Energy",
+            latex_explanation=r"$P_t > 0$ required; non-positive power is non-physical",
+            claimed_value=power_w,
+            unit="W",
+        )
+
+
+def validate_positive_rcs(rcs_m2: float) -> None:
+    """Reject non-positive radar cross section."""
+    if rcs_m2 <= 0:
+        raise PhysicalViolationError(
+            message=f"Radar cross section must be positive, got {rcs_m2} m^2",
+            law_violated="Electromagnetic Scattering",
+            latex_explanation=r"$\sigma > 0$ required; a physical target must scatter energy",
+            claimed_value=rcs_m2,
+            unit="m^2",
+        )

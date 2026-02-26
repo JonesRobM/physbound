@@ -7,6 +7,8 @@ from physbound.validators import (
     validate_positive_bandwidth,
     validate_positive_distance,
     validate_positive_frequency,
+    validate_positive_power,
+    validate_positive_rcs,
     validate_positive_snr,
     validate_temperature,
 )
@@ -70,6 +72,32 @@ class TestPositiveSNR:
     def test_negative_rejects(self):
         with pytest.raises(PhysicalViolationError):
             validate_positive_snr(-1.0)
+
+
+class TestPositivePower:
+    def test_valid(self):
+        validate_positive_power(1000.0)
+
+    def test_zero_rejects(self):
+        with pytest.raises(PhysicalViolationError, match="positive"):
+            validate_positive_power(0)
+
+    def test_negative_rejects(self):
+        with pytest.raises(PhysicalViolationError):
+            validate_positive_power(-100.0)
+
+
+class TestPositiveRCS:
+    def test_valid(self):
+        validate_positive_rcs(1.0)
+
+    def test_zero_rejects(self):
+        with pytest.raises(PhysicalViolationError):
+            validate_positive_rcs(0)
+
+    def test_negative_rejects(self):
+        with pytest.raises(PhysicalViolationError):
+            validate_positive_rcs(-0.5)
 
 
 class TestErrorSerialization:

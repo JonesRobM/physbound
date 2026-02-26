@@ -11,6 +11,7 @@ from hypothesis import strategies as st
 
 from physbound.engines.link_budget import free_space_path_loss_db, max_aperture_gain_dbi
 from physbound.engines.noise import thermal_noise_power_dbm
+from physbound.engines.radar import compute_radar_range
 from physbound.engines.shannon import channel_capacity_bps, spectral_efficiency
 from physbound.engines.units import db_to_linear, linear_to_db
 
@@ -25,6 +26,10 @@ positive_temp = st.floats(min_value=1.0, max_value=1e6)  # 1 K to 1 MK
 positive_linear = st.floats(min_value=1e-15, max_value=1e15)
 db_values = st.floats(min_value=-150.0, max_value=150.0)
 diameter = st.floats(min_value=0.01, max_value=100.0)  # 1 cm to 100 m
+positive_power = st.floats(min_value=0.1, max_value=1e6)  # 0.1 W to 1 MW
+positive_rcs = st.floats(min_value=1e-6, max_value=1e4)  # 1 mm^2 to 10000 m^2
+gain_dbi = st.floats(min_value=0.0, max_value=60.0)  # 0 to 60 dBi
+min_snr_db = st.floats(min_value=1.0, max_value=30.0)  # 1 to 30 dB
 
 
 # --- dB / linear roundtrip ---
@@ -176,3 +181,65 @@ class TestApertureProperties:
         if d2 <= 100:
             delta = max_aperture_gain_dbi(d2, f) - max_aperture_gain_dbi(d, f)
             assert math.isclose(delta, 20 * math.log10(2), rel_tol=1e-9)
+
+
+# --- Radar range monotonicity ---
+
+
+class TestRadarRangeProperties:
+    @given(p1=positive_power, p2=positive_power)
+    def test_range_increases_with_power(self, p1, p2):
+        """R_max increases monotonically with peak power (R ~ P^(1/4))."""
+        assume(p2 > p1 * 1.01)
+        r1 = compute_radar_range(p1, 30.0, 10e9, 1.0)
+        r2 = compute_radar_range(p2, 30.0, 10e9, 1.0)
+        assert r1["max_range_m"] < r2["max_range_m"]
+
+    @given(g1=gain_dbi, g2=gain_dbi)
+    def test_range_increases_with_gain(self, g1, g2):
+        """R_max increases monotonically with antenna gain (R ~ G^(1/2))."""
+        assume(g2 > g1 + 0.5)
+        r1 = compute_radar_range(1000.0, g1, 10e9, 1.0)
+        r2 = compute_radar_range(1000.0, g2, 10e9, 1.0)
+        assert r1["max_range_m"] < r2["max_range_m"]
+
+    @given(s1=positive_rcs, s2=positive_rcs)
+    def test_range_increases_with_rcs(self, s1, s2):
+        """R_max increases monotonically with RCS (R ~ sigma^(1/4))."""
+        assume(s2 > s1 * 1.01)
+        r1 = compute_radar_range(1000.0, 30.0, 10e9, s1)
+        r2 = compute_radar_range(1000.0, 30.0, 10e9, s2)
+        assert r1["max_range_m"] < r2["max_range_m"]
+
+    @given(f1=positive_freq, f2=positive_freq)
+    def test_range_decreases_with_frequency(self, f1, f2):
+        """R_max decreases with frequency (R ~ lambda^(1/2) = (c/f)^(1/2))."""
+        assume(f2 > f1 * 1.01)
+        r1 = compute_radar_range(1000.0, 30.0, f1, 1.0)
+        r2 = compute_radar_range(1000.0, 30.0, f2, 1.0)
+        assert r1["max_range_m"] > r2["max_range_m"]
+
+    @given(t1=positive_temp, t2=positive_temp)
+    def test_range_decreases_with_temperature(self, t1, t2):
+        """R_max decreases with system noise temperature."""
+        assume(t2 > t1 * 1.01)
+        r1 = compute_radar_range(1000.0, 30.0, 10e9, 1.0, system_noise_temp_k=t1)
+        r2 = compute_radar_range(1000.0, 30.0, 10e9, 1.0, system_noise_temp_k=t2)
+        assert r1["max_range_m"] > r2["max_range_m"]
+
+    @given(snr1=min_snr_db, snr2=min_snr_db)
+    def test_range_decreases_with_min_snr(self, snr1, snr2):
+        """R_max decreases with increasing minimum SNR requirement."""
+        assume(snr2 > snr1 + 0.5)
+        r1 = compute_radar_range(1000.0, 30.0, 10e9, 1.0, min_snr_db=snr1)
+        r2 = compute_radar_range(1000.0, 30.0, 10e9, 1.0, min_snr_db=snr2)
+        assert r1["max_range_m"] > r2["max_range_m"]
+
+    @given(p=positive_power)
+    def test_fourth_root_scaling(self, p):
+        """Doubling power increases range by exactly 2^(1/4)."""
+        assume(p * 2 <= 1e6)
+        r1 = compute_radar_range(p, 30.0, 10e9, 1.0)
+        r2 = compute_radar_range(p * 2, 30.0, 10e9, 1.0)
+        ratio = r2["max_range_m"] / r1["max_range_m"]
+        assert math.isclose(ratio, 2**0.25, rel_tol=1e-9)

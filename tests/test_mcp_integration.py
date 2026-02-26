@@ -34,12 +34,17 @@ def client():
 
 
 class TestMCPToolDiscovery:
-    def test_lists_all_three_tools(self, client):
+    def test_lists_all_four_tools(self, client):
         async def check():
             async with client:
                 tools = await client.list_tools()
                 names = {t.name for t in tools}
-                assert names == {"rf_link_budget", "shannon_hartley", "noise_floor"}
+                assert names == {
+                    "rf_link_budget",
+                    "shannon_hartley",
+                    "noise_floor",
+                    "radar_range",
+                }
 
         run_async(check())
 
@@ -160,5 +165,45 @@ class TestMCPNoiseFloor:
                 assert data["cascaded_noise_figure_db"] is not None
                 assert data["receiver_sensitivity_dbm"] is not None
                 assert data["cascaded_noise_figure_db"] < 2.0
+
+        run_async(check())
+
+
+class TestMCPRadarRange:
+    def test_valid_radar_range_query(self, client):
+        async def check():
+            async with client:
+                result = await client.call_tool(
+                    "radar_range",
+                    {
+                        "peak_power_w": 1000.0,
+                        "antenna_gain_dbi": 30.0,
+                        "frequency_hz": 10e9,
+                        "rcs_m2": 1.0,
+                    },
+                )
+                assert not result.is_error
+                data = json.loads(result.content[0].text)
+                assert "max_range_m" in data
+                assert data["max_range_m"] > 0
+
+        run_async(check())
+
+    def test_catches_impossible_range_claim(self, client):
+        async def check():
+            async with client:
+                result = await client.call_tool(
+                    "radar_range",
+                    {
+                        "peak_power_w": 100.0,
+                        "antenna_gain_dbi": 20.0,
+                        "frequency_hz": 10e9,
+                        "rcs_m2": 0.01,
+                        "claimed_range_m": 1_000_000.0,
+                    },
+                )
+                data = json.loads(result.content[0].text)
+                assert data["error"] is True
+                assert "Radar Range" in data["law_violated"]
 
         run_async(check())

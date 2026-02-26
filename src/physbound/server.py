@@ -1,29 +1,33 @@
 """PhysBound MCP Server — Physical Layer Linter for AI hallucination detection.
 
-Exposes three RF validation tools via the Model Context Protocol (MCP):
+Exposes four RF validation tools via the Model Context Protocol (MCP):
   1. rf_link_budget — Friis transmission link budget with aperture limit checks
   2. shannon_hartley — Shannon-Hartley channel capacity and throughput validation
   3. noise_floor — Thermal noise, Friis noise cascade, and receiver sensitivity
+  4. radar_range — Monostatic radar range equation with R_max and claim validation
 """
 
 from fastmcp import FastMCP
 
 from physbound.engines import link_budget as lb_engine
 from physbound.engines import noise as nz_engine
+from physbound.engines import radar as rd_engine
 from physbound.engines import shannon as sh_engine
 from physbound.engines.constants import BOLTZMANN
 from physbound.engines.units import db_to_linear, linear_to_db
 from physbound.errors import PhysicalViolationError
 from physbound.models.link_budget import LinkBudgetOutput
 from physbound.models.noise import NoiseFloorInput, NoiseFloorOutput, NoiseStage
+from physbound.models.radar import RadarRangeInput, RadarRangeOutput
 from physbound.models.shannon import ShannonInput, ShannonOutput
 
 mcp = FastMCP(
     name="PhysBound",
     instructions=(
         "Physics validation MCP server. Validates RF link budgets, "
-        "Shannon-Hartley channel capacity claims, and thermal noise calculations "
-        "against hard physical limits. Catches AI hallucinations in physics."
+        "Shannon-Hartley channel capacity claims, thermal noise calculations, "
+        "and radar range equations against hard physical limits. "
+        "Catches AI hallucinations in physics."
     ),
 )
 
@@ -270,6 +274,81 @@ def noise_floor(
             warnings=warnings,
         ).model_dump()
 
+    except PhysicalViolationError as e:
+        return e.to_dict()
+
+
+@mcp.tool
+def radar_range(
+    peak_power_w: float,
+    antenna_gain_dbi: float,
+    frequency_hz: float,
+    rcs_m2: float,
+    system_noise_temp_k: float = 290.0,
+    noise_bandwidth_hz: float = 1e6,
+    min_snr_db: float = 13.0,
+    claimed_range_m: float | None = None,
+    num_pulses: int = 1,
+    losses_db: float = 0.0,
+) -> dict:
+    """Calculate maximum monostatic radar detection range and validate range claims.
+
+    Computes the radar range equation R_max = [P_t * G^2 * lambda^2 * sigma /
+    ((4*pi)^3 * S_min * L)]^(1/4) for a monostatic radar (same antenna for
+    transmit and receive). Validates that claimed detection ranges do not exceed
+    the theoretical maximum. Catches the common fourth-root fallacy where LLMs
+    incorrectly state that doubling transmit power doubles radar range (it only
+    increases range by a factor of 2^(1/4) = 1.19x).
+
+    Use this tool when you need to:
+    - Calculate the maximum detection range of a radar system
+    - Validate whether a claimed radar detection range is physically achievable
+    - Determine minimum detectable signal power for a radar receiver
+    - Check if radar performance claims account for the R^4 path loss
+    - Verify that RCS assumptions are reasonable for the target class
+
+    Returns both human-readable summary and machine-readable JSON with all
+    intermediate values. Returns a PhysicalViolationError dict if any input
+    violates physics or the claimed range exceeds R_max.
+
+    Args:
+        peak_power_w: Peak transmit power in watts (must be > 0)
+        antenna_gain_dbi: Antenna gain in dBi (same antenna for TX and RX)
+        frequency_hz: Operating frequency in Hz (must be > 0)
+        rcs_m2: Radar cross section of the target in m^2 (must be > 0)
+        system_noise_temp_k: System noise temperature in Kelvin (default: 290K)
+        noise_bandwidth_hz: Receiver noise bandwidth in Hz (default: 1 MHz)
+        min_snr_db: Minimum required SNR in dB for detection (default: 13 dB, Swerling I)
+        claimed_range_m: Optional claimed detection range to validate against R_max (meters)
+        num_pulses: Number of integrated pulses for integration gain (default: 1)
+        losses_db: Total system losses in dB (default: 0)
+    """
+    try:
+        params = RadarRangeInput(
+            peak_power_w=peak_power_w,
+            antenna_gain_dbi=antenna_gain_dbi,
+            frequency_hz=frequency_hz,
+            rcs_m2=rcs_m2,
+            system_noise_temp_k=system_noise_temp_k,
+            noise_bandwidth_hz=noise_bandwidth_hz,
+            min_snr_db=min_snr_db,
+            claimed_range_m=claimed_range_m,
+            num_pulses=num_pulses,
+            losses_db=losses_db,
+        )
+        result = rd_engine.compute_radar_range(
+            peak_power_w=params.peak_power_w,
+            antenna_gain_dbi=params.antenna_gain_dbi,
+            frequency_hz=params.frequency_hz,
+            rcs_m2=params.rcs_m2,
+            system_noise_temp_k=params.system_noise_temp_k,
+            noise_bandwidth_hz=params.noise_bandwidth_hz,
+            min_snr_db=params.min_snr_db,
+            claimed_range_m=params.claimed_range_m,
+            num_pulses=params.num_pulses,
+            losses_db=params.losses_db,
+        )
+        return RadarRangeOutput(**result).model_dump()
     except PhysicalViolationError as e:
         return e.to_dict()
 

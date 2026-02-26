@@ -145,6 +145,52 @@ S_min is the minimum signal power (in dBm) the receiver can detect.
 
 ---
 
+## Monostatic Radar Range Equation
+
+### Maximum Detection Range
+
+```
+R_max = [P_t * G^2 * lambda^2 * sigma / ((4*pi)^3 * S_min * L)]^(1/4)
+```
+
+- **P_t**: peak transmit power in watts
+- **G**: antenna gain (linear, monostatic: same antenna TX/RX)
+- **lambda**: wavelength = c / f (meters)
+- **sigma**: radar cross section (RCS) in m^2
+- **S_min**: minimum detectable signal power in watts
+- **L**: total system losses (linear)
+
+### Signal-to-Noise Ratio (SNR Form)
+
+```
+SNR = P_t * G^2 * lambda^2 * sigma / ((4*pi)^3 * k_B * T_s * B_n * R^4 * L)
+```
+
+- **k_B**: Boltzmann constant
+- **T_s**: system noise temperature in Kelvin
+- **B_n**: noise bandwidth in Hz
+- **R**: range in meters
+
+### Minimum Detectable Signal
+
+```
+S_min = k_B * T_s * B_n * SNR_min / N_pulses
+```
+
+Where N_pulses provides coherent integration gain.
+
+### Key Physical Insight: The Fourth-Root Law
+
+Range scales as the **fourth root** of power, gain squared, RCS, and wavelength squared:
+
+- Doubling P_t increases R_max by factor of 2^(1/4) = 1.189 (NOT 2x)
+- Doubling antenna gain (linear) increases R_max by factor of 2^(1/2) = 1.414
+- 10x larger RCS increases R_max by factor of 10^(1/4) = 1.778
+
+Any claimed detection range exceeding R_max for the given parameters is a physics violation.
+
+---
+
 ## Input Validation Guards
 
 PhysBound enforces these constraints on all inputs before computation:
@@ -158,3 +204,7 @@ PhysBound enforces these constraints on all inputs before computation:
 | SNR > 0 (linear) | Signal must carry energy |
 | Noise Figure >= 0 dB | Quantum noise limit |
 | Antenna diameter > 0 m | Physical aperture must exist |
+| Power > 0 W | Conservation of Energy |
+| RCS > 0 m^2 | Physical target must scatter energy |
+| Losses >= 0 dB | Passive system cannot create energy |
+| Num pulses >= 1 | At least one pulse required |

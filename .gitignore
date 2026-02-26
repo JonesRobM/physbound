@@ -22,6 +22,11 @@ wheels/
 .hypothesis/
 .secrets.baseline
 
+# Coverage
+.coverage
+htmlcov/
+coverage.xml
+
 # IDE
 .idea/
 .vscode/

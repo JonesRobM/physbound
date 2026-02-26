@@ -4,6 +4,16 @@ All notable changes to PhysBound are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-26
+
+### Added
+- **radar_range** tool — monostatic radar range equation with R_max computation and detection range validation
+- 2 new validators: `validate_positive_power`, `validate_positive_rcs`
+- 2 new hallucination cases: fourth-root power fallacy, drone RCS detection range
+- Property-based tests for radar range monotonicity invariants (7 tests)
+- Radar range formula reference in `docs/formulas.md`
+- MCP integration tests for radar_range tool
+
 ## [0.1.3] - 2026-02-26
 
 ### Added
@@ -56,6 +66,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - 107 tests covering all engines, validators, server integration, and marketing hallucination cases
 - Pre-commit hooks: ruff, detect-secrets, large file checks
 
+[0.2.0]: https://github.com/JonesRobM/physbound/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/JonesRobM/physbound/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/JonesRobM/physbound/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/JonesRobM/physbound/compare/v0.1.0...v0.1.1

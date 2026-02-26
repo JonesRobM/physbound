@@ -88,6 +88,20 @@ HALLUCINATION_CASES = [
         "truth": None,
         "category": "Antenna Aperture",
     },
+    {
+        "id": "radar_double_power_double_range",
+        "hallucination": "Doubling transmit power doubles radar detection range",
+        "truth": None,
+        "category": "Radar Range Equation",
+    },
+    {
+        "id": "drone_200km_xband",
+        "hallucination": (
+            "Small drone (0.01 m^2 RCS) detectable at 200 km by 1 kW X-band radar with 30 dBi gain"
+        ),
+        "truth": None,
+        "category": "Radar Range Equation",
+    },
 ]
 
 
@@ -234,6 +248,48 @@ class TestAntennaHallucinations2:
         g_max = max_aperture_gain_dbi(0.1, 900e6)
         HALLUCINATION_CASES[9]["truth"] = (
             f"Max gain: {g_max:.1f} dBi for 0.1 m antenna at 900 MHz (not 20 dBi)"
+        )
+
+
+class TestRadarRangeHallucinations:
+    def test_double_power_double_range(self):
+        """LLMs commonly claim doubling power doubles radar range.
+
+        Due to R^4 dependence, doubling P only increases R by 2^(1/4) = 1.189x.
+        """
+        from physbound.engines.radar import compute_radar_range
+
+        r1 = compute_radar_range(1000, 30, 10e9, 1.0)
+        r2 = compute_radar_range(2000, 30, 10e9, 1.0)
+        ratio = r2["max_range_m"] / r1["max_range_m"]
+        assert abs(ratio - 2.0) > 0.5, "Range ratio should NOT be 2.0"
+        assert abs(ratio - 2**0.25) < 0.01, "Range ratio should be 2^(1/4)"
+        HALLUCINATION_CASES[10]["truth"] = (
+            f"Range increases by factor {ratio:.3f} (2^(1/4) = {2**0.25:.3f}), not 2.0"
+        )
+
+    def test_drone_200km_xband(self):
+        """LLMs overestimate radar detection range for small RCS targets."""
+        from physbound.engines.radar import compute_radar_range
+
+        result = compute_radar_range(
+            peak_power_w=1000,
+            antenna_gain_dbi=30,
+            frequency_hz=10e9,
+            rcs_m2=0.01,
+        )
+        r_max_km = result["max_range_km"]
+        assert r_max_km < 200, "1 kW X-band cannot detect drone at 200 km"
+        with pytest.raises(PhysicalViolationError, match="Radar Range"):
+            compute_radar_range(
+                peak_power_w=1000,
+                antenna_gain_dbi=30,
+                frequency_hz=10e9,
+                rcs_m2=0.01,
+                claimed_range_m=200_000,
+            )
+        HALLUCINATION_CASES[11]["truth"] = (
+            f"Max range: {r_max_km:.1f} km for 0.01 m^2 RCS at 1 kW X-band (not 200 km)"
         )
 
 

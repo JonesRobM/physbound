@@ -109,9 +109,50 @@ class TestNoiseFloor:
         assert result["thermal_noise_dbm"] < -114.0
 
 
+class TestRadarRange:
+    def test_basic_invocation(self):
+        result = call_tool(
+            "radar_range",
+            peak_power_w=1000.0,
+            antenna_gain_dbi=30.0,
+            frequency_hz=10e9,
+            rcs_m2=1.0,
+        )
+        assert "max_range_m" in result
+        assert "max_range_km" in result
+        assert "wavelength_m" in result
+        assert "human_readable" in result
+        assert "latex" in result
+        assert "error" not in result
+
+    def test_claimed_range_violation_returns_error_dict(self):
+        result = call_tool(
+            "radar_range",
+            peak_power_w=1000.0,
+            antenna_gain_dbi=30.0,
+            frequency_hz=10e9,
+            rcs_m2=0.01,
+            claimed_range_m=500_000.0,
+        )
+        assert result["error"] is True
+        assert result["violation_type"] == "PhysicalViolationError"
+        assert "Radar Range" in result["law_violated"]
+
+    def test_with_losses_and_pulses(self):
+        result = call_tool(
+            "radar_range",
+            peak_power_w=5000.0,
+            antenna_gain_dbi=35.0,
+            frequency_hz=3e9,
+            rcs_m2=10.0,
+            losses_db=3.0,
+            num_pulses=10,
+        )
+        assert result["max_range_m"] > 0
+        assert result["integration_gain"] == 10
+
+
 class TestToolRegistration:
     def test_all_tools_registered(self):
         tool_names = {t.name for t in mcp._tool_manager._tools.values()}
-        assert "rf_link_budget" in tool_names
-        assert "shannon_hartley" in tool_names
-        assert "noise_floor" in tool_names
+        assert tool_names == {"rf_link_budget", "shannon_hartley", "noise_floor", "radar_range"}
