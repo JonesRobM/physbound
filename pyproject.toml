@@ -1,6 +1,6 @@
 [project]
 name = "physbound"
-version = "0.1.2"
+version = "0.1.3"
 description = "Physical Layer Linter — validates RF and physics calculations against hard physical limits"
 readme = "README.md"
 license = "MIT"
