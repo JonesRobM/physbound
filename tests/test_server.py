@@ -1,13 +1,14 @@
 """MCP server integration tests — verify tool invocation and response shapes."""
 
+import asyncio
+
 from physbound.server import mcp
 
 
-# Access the underlying functions through the MCP tool registry
 def call_tool(name: str, **kwargs) -> dict:
-    """Call an MCP tool's underlying function directly for testing."""
-    tools = {t.name: t for t in mcp._tool_manager._tools.values()}
-    tool = tools[name]
+    """Call an MCP tool's underlying function directly via FastMCP's public API."""
+    tool = asyncio.run(mcp.get_tool(name))
+    assert tool is not None, f"tool {name!r} not registered"
     return tool.fn(**kwargs)
 
 
@@ -152,7 +153,92 @@ class TestRadarRange:
         assert result["integration_gain"] == 10
 
 
+class TestAntennaGain:
+    def test_basic_invocation(self):
+        result = call_tool("antenna_gain", frequency_hz=10e9, diameter_m=1.0)
+        assert "error" not in result
+        assert abs(result["physical_limit_dbi"] - 40.49) < 0.01
+        assert abs(result["aperture_limit_dbi"] - 40.41) < 0.01
+        assert result["limiting_bound"] == "aperture"
+        assert abs(result["typical_gain_dbi"] - 37.81) < 0.01
+        assert "half_power_beamwidth_deg" in result
+        assert "far_field_distance_m" in result
+        assert "human_readable" in result
+        assert "latex" in result
+
+    def test_area_input(self):
+        result = call_tool("antenna_gain", frequency_hz=10e9, aperture_area_m2=0.7853981633974483)
+        assert abs(result["diameter_m"] - 1.0) < 1e-9
+
+    def test_valid_claim_with_warning(self):
+        result = call_tool("antenna_gain", frequency_hz=10e9, diameter_m=1.0, claimed_gain_dbi=39.0)
+        assert result["claim_is_valid"] is True
+        assert any("typical-efficiency" in w for w in result["warnings"])
+
+    def test_impossible_claim_returns_error_dict(self):
+        result = call_tool("antenna_gain", frequency_hz=1e9, diameter_m=0.3, claimed_gain_dbi=45.0)
+        assert result["error"] is True
+        assert result["violation_type"] == "PhysicalViolationError"
+        assert result["law_violated"] == "Antenna Aperture Limit"
+
+
 class TestToolRegistration:
     def test_all_tools_registered(self):
-        tool_names = {t.name for t in mcp._tool_manager._tools.values()}
-        assert tool_names == {"rf_link_budget", "shannon_hartley", "noise_floor", "radar_range"}
+        tool_names = {t.name for t in asyncio.run(mcp.list_tools())}
+        assert tool_names == {
+            "rf_link_budget",
+            "shannon_hartley",
+            "noise_floor",
+            "radar_range",
+            "antenna_gain",
+            "radar_ambiguity",
+        }
+
+
+class TestRadarAmbiguity:
+    def test_basic_invocation(self):
+        result = call_tool("radar_ambiguity", frequency_hz=10e9, prf_hz=1e3)
+        assert "error" not in result
+        assert abs(result["max_unambiguous_range_km"] - 149.896) < 0.001
+        assert abs(result["max_unambiguous_velocity_m_s"] - 7.495) < 0.001
+        assert result["doppler_shift_hz"] is None
+        assert result["range_resolution_m"] is None
+        assert "human_readable" in result
+        assert "latex" in result
+
+    def test_with_pulse_width_and_velocity(self):
+        result = call_tool(
+            "radar_ambiguity",
+            frequency_hz=10e9,
+            prf_hz=10e3,
+            pulse_width_s=1e-6,
+            target_velocity_m_s=100.0,
+        )
+        assert abs(result["range_resolution_m"] - 149.896) < 0.001
+        assert abs(result["duty_cycle"] - 0.01) < 1e-12
+        assert result["doppler_aliased"] is True
+        assert any("aliased" in w for w in result["warnings"])
+
+    def test_claimed_velocity_violation_returns_error_dict(self):
+        result = call_tool(
+            "radar_ambiguity",
+            frequency_hz=10e9,
+            prf_hz=10e3,
+            claimed_unambiguous_velocity_m_s=500.0,
+        )
+        assert result["error"] is True
+        assert result["violation_type"] == "PhysicalViolationError"
+        assert result["law_violated"] == "Radar Doppler Ambiguity"
+        assert abs(result["computed_limit"] - 74.95) < 0.05
+
+    def test_claimed_range_violation_returns_error_dict(self):
+        result = call_tool(
+            "radar_ambiguity", frequency_hz=10e9, prf_hz=10e3, claimed_unambiguous_range_m=100e3
+        )
+        assert result["error"] is True
+        assert result["law_violated"] == "Radar Range Ambiguity"
+
+    def test_duty_cycle_violation_returns_error_dict(self):
+        result = call_tool("radar_ambiguity", frequency_hz=10e9, prf_hz=1e3, pulse_width_s=1e-3)
+        assert result["error"] is True
+        assert result["law_violated"] == "Pulsed Radar Timing"

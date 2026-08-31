@@ -9,8 +9,19 @@ import math
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
-from physbound.engines.link_budget import free_space_path_loss_db, max_aperture_gain_dbi
-from physbound.engines.noise import thermal_noise_power_dbm
+from physbound.engines.link_budget import (
+    free_space_path_loss_db,
+    harrington_gain_limit_dbi,
+    max_aperture_gain_dbi,
+    physical_aperture_gain_limit_dbi,
+    physical_gain_limit_dbi,
+    validate_antenna_gain,
+)
+from physbound.engines.noise import (
+    effective_noise_temperature_k,
+    receiver_sensitivity_dbm,
+    thermal_noise_power_dbm,
+)
 from physbound.engines.radar import compute_radar_range
 from physbound.engines.shannon import channel_capacity_bps, spectral_efficiency
 from physbound.engines.units import db_to_linear, linear_to_db
@@ -181,6 +192,70 @@ class TestApertureProperties:
         if d2 <= 100:
             delta = max_aperture_gain_dbi(d2, f) - max_aperture_gain_dbi(d, f)
             assert math.isclose(delta, 20 * math.log10(2), rel_tol=1e-9)
+
+    @given(d=diameter, f=positive_freq, eta=st.floats(min_value=0.01, max_value=1.0))
+    def test_physical_limit_dominates_any_efficiency(self, d, f, eta):
+        """(pi D / lambda)^2 >= eta (pi D / lambda)^2 for every eta <= 1, gap = -10 log10(eta)."""
+        g_phys = physical_aperture_gain_limit_dbi(d, f)
+        g_eta = max_aperture_gain_dbi(d, f, eta)
+        assert g_phys >= g_eta
+        assert math.isclose(g_phys - g_eta, -10 * math.log10(eta), abs_tol=1e-9)
+
+    @given(d=diameter, f=positive_freq, eta=st.floats(min_value=0.55, max_value=1.0))
+    def test_gain_at_or_below_physical_never_raises(self, d, f, eta):
+        """Any claim with implied efficiency <= 1 is accepted; > 0.55 is warned."""
+        claim = max_aperture_gain_dbi(d, f, eta) - 1e-9
+        check = validate_antenna_gain(claim, d, f)
+        assert check["physical_limit_dbi"] >= check["aperture_limit_dbi"] >= claim
+        has_warning = any("typical-efficiency" in w for w in check["warnings"])
+        assert has_warning == (claim > check["typical_limit_dbi"])
+
+    @given(d=diameter, f=positive_freq)
+    def test_harrington_bound_exceeds_aperture_by_2ka(self, d, f):
+        """(ka)^2 + 2ka > (ka)^2 always, so the hard limit is the Harrington value."""
+        g_ap = physical_aperture_gain_limit_dbi(d, f)
+        g_h = harrington_gain_limit_dbi(d, f)
+        assert g_h > g_ap
+        ka = math.pi * d * f / 299792458
+        assert math.isclose(g_h - g_ap, 10 * math.log10(1 + 2 / ka), rel_tol=1e-9, abs_tol=1e-9)
+        assert physical_gain_limit_dbi(d, f) == g_h
+
+    @given(d=diameter, f=positive_freq)
+    def test_limiting_bound_matches_electrical_size(self, d, f):
+        check = validate_antenna_gain(-100.0, d, f)
+        wavelength = 299792458 / f
+        assert check["limiting_bound"] == ("harrington" if d < wavelength else "aperture")
+
+    @given(d=diameter, f1=positive_freq, f2=positive_freq)
+    def test_harrington_limit_increases_with_frequency(self, d, f1, f2):
+        assume(f2 > f1 * 1.001)
+        assert harrington_gain_limit_dbi(d, f1) < harrington_gain_limit_dbi(d, f2)
+
+
+# --- Receiver noise ---
+
+
+class TestReceiverNoiseProperties:
+    @given(nf=st.floats(min_value=0.0, max_value=30.0))
+    def test_effective_temperature_referenced_to_290k(self, nf):
+        """T_e = 290 (F - 1) >= 0 and F = 1 + T_e / 290 round-trips."""
+        t_e = effective_noise_temperature_k(nf)
+        assert t_e >= 0.0
+        assert math.isclose(10 * math.log10(1 + t_e / 290.0), nf, abs_tol=1e-9)
+
+    @given(bw=positive_bw, nf=st.floats(min_value=0.0, max_value=30.0), snr=db_values)
+    def test_sensitivity_reduces_to_classic_form_at_290k(self, bw, nf, snr):
+        """S_min = N_floor(290 K) + NF + SNR_req when T_A = 290 K."""
+        s = receiver_sensitivity_dbm(bw, nf, snr, temperature_k=290.0)
+        expected = thermal_noise_power_dbm(bw, 290.0) + nf + snr
+        assert math.isclose(s, expected, abs_tol=1e-6)
+
+    @given(bw=positive_bw, nf=st.floats(min_value=0.01, max_value=30.0), t_a=positive_temp)
+    def test_receiver_noise_never_below_its_own_t_e(self, bw, nf, t_a):
+        """Total noise k (T_A + T_e) B is at least k T_e B, whatever the source temperature."""
+        s = receiver_sensitivity_dbm(bw, nf, 0.0, temperature_k=t_a)
+        floor_te = thermal_noise_power_dbm(bw, effective_noise_temperature_k(nf))
+        assert s >= floor_te - 1e-9
 
 
 # --- Radar range monotonicity ---

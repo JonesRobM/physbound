@@ -164,6 +164,11 @@ class TestRadarRangeValidation:
         with pytest.raises(PhysicalViolationError, match="pulses"):
             compute_radar_range(1000.0, 30.0, 10e9, 1.0, num_pulses=0)
 
+    def test_zero_temperature_rejects(self):
+        """T_s = 0 K gives S_min = 0 and infinite range; must be rejected, not crash."""
+        with pytest.raises(PhysicalViolationError, match="unbounded"):
+            compute_radar_range(1000.0, 30.0, 10e9, 1.0, system_noise_temp_k=0.0)
+
     def test_negative_losses_rejects(self):
         with pytest.raises(PhysicalViolationError, match="losses"):
             compute_radar_range(1000.0, 30.0, 10e9, 1.0, losses_db=-1.0)

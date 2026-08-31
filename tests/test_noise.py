@@ -4,7 +4,9 @@ import math
 
 import pytest
 
+from physbound.engines.constants import BOLTZMANN
 from physbound.engines.noise import (
+    effective_noise_temperature_k,
     friis_noise_cascade,
     receiver_sensitivity_dbm,
     thermal_noise_power_dbm,
@@ -114,3 +116,51 @@ class TestReceiverSensitivity:
         s = receiver_sensitivity_dbm(1e6, 6.0, 10.0)
         expected = thermal_noise_power_dbm(1e6, 290.0) + 6.0 + 10.0
         assert abs(s - expected) < 1e-10
+
+    def test_sensitivity_at_290k_matches_classic_form(self):
+        """At T_A = 290 K, k(T_A + T_0(F-1))B = k T_0 B F, i.e. N_floor + NF."""
+        s = receiver_sensitivity_dbm(1e6, 3.0, 0.0, temperature_k=290.0)
+        assert abs(s - (thermal_noise_power_dbm(1e6, 290.0) + 3.0)) < 1e-9
+
+    def test_sensitivity_cold_source_uses_t0_for_receiver_noise(self):
+        """T_A = 77 K, NF = 3 dB: T_e = 290 (1.995 - 1) = 288.6 K, N = k (77 + 288.6) B.
+
+        The old N_floor(77 K) + NF form would give k * 77 * 1.995 * B = k * 153.6 K * B,
+        under-estimating the noise by 10 log10(365.6 / 153.6) = 3.77 dB.
+        """
+        f = 10 ** (3.0 / 10)
+        t_e = 290.0 * (f - 1)
+        expected = 10 * math.log10(BOLTZMANN.magnitude * (77.0 + t_e) * 1e6 / 1e-3) + 10.0
+        s = receiver_sensitivity_dbm(1e6, 3.0, 10.0, temperature_k=77.0)
+        assert abs(s - expected) < 1e-9
+        wrong = thermal_noise_power_dbm(1e6, 77.0) + 3.0 + 10.0
+        assert s > wrong + 3.5
+
+    def test_sensitivity_zero_source_noiseless_receiver(self):
+        """T_A = 0 and F = 1 -> no noise -> -inf."""
+        assert receiver_sensitivity_dbm(1e6, 0.0, 10.0, temperature_k=0.0) == float("-inf")
+
+    def test_sensitivity_zero_source_noisy_receiver_is_finite(self):
+        """T_A = 0 K but NF = 3 dB: the receiver still adds T_e = 288.6 K."""
+        s = receiver_sensitivity_dbm(1e6, 3.0, 0.0, temperature_k=0.0)
+        f = 10 ** (3.0 / 10)
+        assert abs(s - thermal_noise_power_dbm(1e6, 290.0 * (f - 1))) < 1e-9
+
+
+class TestEffectiveNoiseTemperature:
+    def test_definition(self):
+        """T_e = T_0 (F - 1), T_0 = 290 K (IEEE). NF = 3 dB -> 288.6 K."""
+        t_e = effective_noise_temperature_k(3.0)
+        assert abs(t_e - 290.0 * (10**0.3 - 1)) < 1e-9
+        assert abs(t_e - 288.6) < 0.1
+
+    def test_noiseless(self):
+        assert effective_noise_temperature_k(0.0) == 0.0
+
+    def test_nf_1db_is_75k(self):
+        """NF = 1 dB -> T_e = 290 * 0.2589 = 75.1 K (Pozar Table)."""
+        assert abs(effective_noise_temperature_k(1.0) - 75.1) < 0.1
+
+    def test_negative_nf_rejects(self):
+        with pytest.raises(PhysicalViolationError, match="Quantum"):
+            effective_noise_temperature_k(-0.1)

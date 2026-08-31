@@ -11,6 +11,8 @@ import pytest
 from physbound.engines.link_budget import (
     compute_link_budget,
     max_aperture_gain_dbi,
+    physical_aperture_gain_limit_dbi,
+    physical_gain_limit_dbi,
 )
 from physbound.engines.noise import (
     friis_noise_cascade,
@@ -102,6 +104,34 @@ HALLUCINATION_CASES = [
         "truth": None,
         "category": "Radar Range Equation",
     },
+    {
+        "id": "starlink_dish_50dbi",
+        "hallucination": "A 0.5 m user-terminal dish at 12 GHz gives 50 dBi gain",
+        "truth": None,
+        "category": "Antenna Gain",
+    },
+    {
+        "id": "wifi_router_antenna_far_field",
+        "hallucination": (
+            "A 3 m dish at 10 GHz is in its far field at 10 m, so gain can be measured there"
+        ),
+        "truth": None,
+        "category": "Antenna Gain",
+    },
+    {
+        "id": "pulse_doppler_500ms_at_10khz",
+        "hallucination": "A 10 GHz radar at 10 kHz PRF unambiguously measures 500 m/s",
+        "truth": None,
+        "category": "Radar Ambiguity",
+    },
+    {
+        "id": "pulse_doppler_range_and_velocity_free_lunch",
+        "hallucination": (
+            "A 10 GHz pulse-Doppler radar can unambiguously cover 150 km and +/-300 m/s at once"
+        ),
+        "truth": None,
+        "category": "Radar Ambiguity",
+    },
 ]
 
 
@@ -140,12 +170,16 @@ class TestAntennaHallucinations:
                 distance_m=1000,
                 tx_antenna_diameter_m=0.3,
             )
-        # G_max for 0.3m dish at 1 GHz
-        from physbound.engines.link_budget import max_aperture_gain_dbi
-
-        g_max = max_aperture_gain_dbi(0.3, 1e9)
+        # Hard limit = max(eta = 1 aperture, Harrington (ka)^2 + 2ka) for 0.3 m at 1 GHz
+        g_phys = physical_gain_limit_dbi(0.3, 1e9)
+        g_ap = physical_aperture_gain_limit_dbi(0.3, 1e9)
+        g_typ = max_aperture_gain_dbi(0.3, 1e9)
+        assert abs(g_phys - 12.1) < 0.05
+        assert abs(g_ap - 9.9) < 0.05
+        assert abs(g_typ - 7.4) < 0.05
         HALLUCINATION_CASES[2]["truth"] = (
-            f"Max gain: {g_max:.1f} dBi for 0.3 m dish at 1 GHz (not 45 dBi)"
+            f"Physical limit: {g_phys:.1f} dBi (Harrington); aperture eta=1: {g_ap:.1f} dBi; "
+            f"typical dish: {g_typ:.1f} dBi (eta=0.55) (not 45 dBi)"
         )
 
 
@@ -245,9 +279,19 @@ class TestAntennaHallucinations2:
                 distance_m=1000,
                 tx_antenna_diameter_m=0.1,
             )
-        g_max = max_aperture_gain_dbi(0.1, 900e6)
+        # D = 0.1 m < lambda = 0.333 m: the Harrington bound (ka)^2 + 2ka governs
+        g_phys = physical_gain_limit_dbi(0.1, 900e6)
+        g_ap = physical_aperture_gain_limit_dbi(0.1, 900e6)
+        g_typ = max_aperture_gain_dbi(0.1, 900e6)
+        assert abs(g_phys - 4.4) < 0.05
+        assert abs(g_ap - (-0.5)) < 0.05
+        assert abs(g_typ - (-3.1)) < 0.05
+        # a real half-wave dipole (2.15 dBi) in the same footprint is NOT a violation
+        ok = compute_link_budget(20, 2.15, 0, 900e6, 1000, tx_antenna_diameter_m=0.1)
+        assert ok["tx_limiting_bound"] == "harrington"
         HALLUCINATION_CASES[9]["truth"] = (
-            f"Max gain: {g_max:.1f} dBi for 0.1 m antenna at 900 MHz (not 20 dBi)"
+            f"Physical limit: {g_phys:.1f} dBi (Harrington, D < lambda); aperture eta=1: "
+            f"{g_ap:.1f} dBi; typical: {g_typ:.1f} dBi (eta=0.55) (not 20 dBi)"
         )
 
 
@@ -290,6 +334,76 @@ class TestRadarRangeHallucinations:
             )
         HALLUCINATION_CASES[11]["truth"] = (
             f"Max range: {r_max_km:.1f} km for 0.01 m^2 RCS at 1 kW X-band (not 200 km)"
+        )
+
+
+class TestAntennaGainToolHallucinations:
+    def test_starlink_dish_50dbi(self):
+        """LLMs quote gain figures far above what a 0.5 m aperture can deliver at Ku-band."""
+        from physbound.engines.antenna import compute_antenna_gain
+
+        with pytest.raises(PhysicalViolationError, match="Aperture"):
+            compute_antenna_gain(frequency_hz=12e9, diameter_m=0.5, claimed_gain_dbi=50.0)
+        r = compute_antenna_gain(frequency_hz=12e9, diameter_m=0.5)
+        # (pi * 0.5 / 0.02498)^2 -> 36.0 dBi at eta = 1; Harrington 36.1 dBi; 33.4 dBi at eta = 0.55
+        assert abs(r["aperture_limit_dbi"] - 36.0) < 0.05
+        assert abs(r["physical_limit_dbi"] - 36.1) < 0.05
+        assert abs(r["typical_gain_dbi"] - 33.4) < 0.05
+        HALLUCINATION_CASES[12]["truth"] = (
+            f"Physical limit: {r['physical_limit_dbi']:.1f} dBi (Harrington); typical dish: "
+            f"{r['typical_gain_dbi']:.1f} dBi (eta=0.55) (not 50 dBi)"
+        )
+
+    def test_far_field_distance_underestimated(self):
+        """LLMs ignore the 2D^2/lambda Fraunhofer distance for large apertures."""
+        from physbound.engines.antenna import compute_antenna_gain
+
+        r = compute_antenna_gain(frequency_hz=10e9, diameter_m=3.0)
+        r_ff = r["far_field_distance_m"]
+        # 2 * 9 / 0.02998 = 600 m
+        assert abs(r_ff - 600.4) < 0.5
+        assert r_ff > 10.0, "10 m is deep inside the near field of a 3 m dish at 10 GHz"
+        HALLUCINATION_CASES[13]["truth"] = (
+            f"Far-field distance 2D^2/lambda = {r_ff:.0f} m; 10 m is in the near field"
+        )
+
+
+class TestRadarAmbiguityHallucinations:
+    def test_pulse_doppler_500ms_at_10khz(self):
+        """LLMs quote velocity coverage far beyond +/-lambda*PRF/4 for a given PRF."""
+        from physbound.engines.doppler import compute_radar_ambiguity
+
+        r = compute_radar_ambiguity(frequency_hz=10e9, prf_hz=10e3)
+        v_ua = r["max_unambiguous_velocity_m_s"]
+        # lambda = 2.998 cm, PRF 10 kHz -> v_ua = 74.9 m/s, first blind speed 149.9 m/s
+        assert abs(v_ua - 74.95) < 0.05
+        with pytest.raises(PhysicalViolationError, match="Doppler Ambiguity"):
+            compute_radar_ambiguity(
+                frequency_hz=10e9, prf_hz=10e3, claimed_unambiguous_velocity_m_s=500.0
+            )
+        HALLUCINATION_CASES[14]["truth"] = (
+            f"v_ua = lambda*PRF/4 = +/-{v_ua:.1f} m/s (blind speed "
+            f"{r['first_blind_speed_m_s']:.1f} m/s); 500 m/s aliases (not 500 m/s)"
+        )
+
+    def test_range_and_velocity_free_lunch(self):
+        """LLMs ignore the range-Doppler dilemma: R_ua * v_ua = c*lambda/8 for any PRF."""
+        from physbound.engines.doppler import compute_radar_ambiguity
+
+        r = compute_radar_ambiguity(frequency_hz=10e9, prf_hz=1e3)
+        invariant = r["range_velocity_product_m2_s"]
+        claimed_product = 150_000.0 * 300.0
+        assert claimed_product > invariant * 10, "claim exceeds the invariant by > 10x"
+        with pytest.raises(PhysicalViolationError, match="Range-Doppler Dilemma"):
+            compute_radar_ambiguity(
+                frequency_hz=10e9,
+                prf_hz=1e3,
+                claimed_unambiguous_range_m=150_000.0,
+                claimed_unambiguous_velocity_m_s=300.0,
+            )
+        HALLUCINATION_CASES[15]["truth"] = (
+            f"R_ua*v_ua = c*lambda/8 = {invariant:.3e} m^2/s for any PRF; "
+            f"claimed {claimed_product:.1e} m^2/s ({claimed_product / invariant:.0f}x too large)"
         )
 
 
