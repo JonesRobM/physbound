@@ -13,7 +13,12 @@ class RadarRangeInput(BaseModel):
     frequency_hz: float = Field(gt=0, description="Operating frequency in Hz")
     rcs_m2: float = Field(gt=0, description="Radar cross section in m^2")
     system_noise_temp_k: float = Field(
-        default=290.0, ge=0, description="System noise temperature in Kelvin (default: 290K)"
+        default=290.0,
+        gt=0,
+        description=(
+            "System noise temperature in Kelvin (default: 290K). Must be > 0: "
+            "a noiseless receiver would have unbounded range."
+        ),
     )
     noise_bandwidth_hz: float = Field(
         default=1e6, gt=0, description="Receiver noise bandwidth in Hz (default: 1 MHz)"
