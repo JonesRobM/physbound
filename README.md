@@ -7,22 +7,78 @@
 
 <h1 align="center">PhysBound</h1>
 
-**Physical Layer Linter** — An [MCP server](https://modelcontextprotocol.io) that validates RF and physics calculations against hard physical limits. Catches AI hallucinations in engineering workflows.
+<p align="center"><strong>Physical Layer Linter</strong> — an <a href="https://modelcontextprotocol.io">MCP server</a> that validates RF and physics calculations against hard physical limits, catching AI hallucinations in engineering workflows.</p>
 
-[![CI](https://github.com/JonesRobM/physbound/actions/workflows/ci.yml/badge.svg)](https://github.com/JonesRobM/physbound/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/JonesRobM/physbound/graph/badge.svg)](https://codecov.io/gh/JonesRobM/physbound)
-[![PyPI](https://img.shields.io/pypi/v/physbound.svg)](https://pypi.org/project/physbound/)
-[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-green.svg)](https://registry.modelcontextprotocol.io)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
-[![MCP Badge](https://lobehub.com/badge/mcp/jonesrobm-physbound)](https://lobehub.com/mcp/jonesrobm-physbound)
-[![Ko-fi](https://img.shields.io/badge/Ko--fi-Support%20PhysBound-ff5e5b?logo=ko-fi&logoColor=white)](https://ko-fi.com/jonesrobm)
+<p align="center">
+  <a href="https://github.com/JonesRobM/physbound/actions/workflows/ci.yml"><img src="https://github.com/JonesRobM/physbound/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://codecov.io/gh/JonesRobM/physbound"><img src="https://codecov.io/gh/JonesRobM/physbound/graph/badge.svg" alt="codecov"></a>
+  <a href="https://pypi.org/project/physbound/"><img src="https://img.shields.io/pypi/v/physbound.svg" alt="PyPI"></a>
+  <a href="https://registry.modelcontextprotocol.io"><img src="https://img.shields.io/badge/MCP_Registry-listed-green.svg" alt="MCP Registry"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.12+-blue.svg" alt="Python 3.12+"></a>
+  <a href="https://lobehub.com/mcp/jonesrobm-physbound"><img src="https://lobehub.com/badge/mcp/jonesrobm-physbound" alt="MCP Badge"></a>
+  <a href="https://ko-fi.com/jonesrobm"><img src="https://img.shields.io/badge/Ko--fi-Support%20PhysBound-ff5e5b?logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
+</p>
 
 ---
 
+LLMs generate plausible-sounding RF numbers that violate fundamental physics — throughput above the Shannon limit, antenna gains no aperture can produce, radar ranges the range equation forbids. PhysBound gives any MCP-compatible AI assistant six validated calculation tools, backed by CODATA constants (via SciPy) and dimensional analysis (via Pint). Impossible claims return structured `PhysicalViolationError` responses with the violated law, the computed limit, and a LaTeX explanation — not silent failures.
+
+| Tool | What it validates |
+|------|-------------------|
+| [`rf_link_budget`](#rf_link_budget) | Friis link budgets: FSPL, received power, antenna gains vs. aperture/Harrington limits |
+| [`shannon_hartley`](#shannon_hartley) | Throughput claims against channel capacity `C = B log2(1 + SNR)` |
+| [`noise_floor`](#noise_floor) | Thermal noise `kTB`, Friis noise-figure cascades, receiver sensitivity |
+| [`radar_range`](#radar_range) | Detection-range claims against the monostatic radar range equation |
+| [`antenna_gain`](#antenna_gain) | Gain limits, beamwidth, and far-field distance for a single antenna |
+| [`radar_ambiguity`](#radar_ambiguity) | Pulse-Doppler unambiguous range/velocity, Doppler aliasing, range resolution |
+
+## Installation
+
+PhysBound is a standard stdio MCP server published on [PyPI](https://pypi.org/project/physbound/). The recommended launch command is [`uvx physbound`](https://docs.astral.sh/uv/), which fetches and runs the latest release in an isolated environment — no manual install step.
+
+> **First run:** `uvx` downloads ~60 MB of dependencies (SciPy, NumPy) the first time. Run `uvx physbound` once in a terminal to pre-cache them (Ctrl-C to exit); subsequent starts are instant.
+
+### Claude Code
+
+```bash
+claude mcp add physbound -- uvx physbound
+```
+
+### Claude Desktop
+
+Add to `claude_desktop_config.json` (macOS: `~/Library/Application Support/Claude/`, Windows: `%APPDATA%\Claude\`):
+
+```json
+{
+  "mcpServers": {
+    "physbound": {
+      "command": "uvx",
+      "args": ["physbound"]
+    }
+  }
+}
+```
+
+### Cursor, Windsurf, and other MCP clients
+
+Use the same JSON server entry as above in your client's MCP configuration file (Cursor: `~/.cursor/mcp.json`; Windsurf: `~/.codeium/windsurf/mcp_config.json`).
+
+### Without uv
+
+If you prefer a plain Python install (requires Python 3.12+):
+
+```bash
+pip install physbound
+```
+
+then set `"command": "physbound"` (with no `args`) in the client configuration.
+
+Once configured, ask your assistant an RF question — *"Can a 20 MHz channel with 15 dB SNR support 500 Mbps?"* — and it will answer with physics-validated numbers.
+
 ## What LLMs Get Wrong
 
-LLMs routinely hallucinate physics. PhysBound catches it:
+Sixteen real hallucination patterns, each caught by PhysBound's test suite:
 
 | # | Category | LLM Hallucination | PhysBound Truth | Verdict |
 |---|----------|-------------------|-----------------|---------|
@@ -45,97 +101,66 @@ LLMs routinely hallucinate physics. PhysBound catches it:
 
 *Generated automatically by `pytest tests/test_marketing.py -s`*
 
----
-
-## Quick Start
-
-### Install
-
-```bash
-pip install physbound
-```
-
-### MCP Client Configuration
-
-Add PhysBound to any MCP-compatible client. For example, in Claude Desktop (`claude_desktop_config.json`), Cursor, or Windsurf:
-
-```json
-{
-  "mcpServers": {
-    "physbound": {
-      "command": "uvx",
-      "args": ["physbound"]
-    }
-  }
-}
-```
-
-> **First run:** `uvx` downloads ~60 MB of dependencies (scipy, numpy) on first launch. Run `uvx physbound` once in your terminal to pre-cache them — subsequent starts will be instant.
-
-Your AI assistant now has access to physics-validated RF calculations.
-
----
-
 ## Tools
+
+Full derivations, sources, and worked examples for every formula are in [`docs/formulas.md`](docs/formulas.md).
 
 ### `rf_link_budget`
 
-Computes a full RF link budget using the Friis transmission equation. Validates antenna gains against aperture limits.
+Computes a complete RF link budget using the Friis transmission equation and validates antenna gains against physical limits.
 
 **Example:** *"What's the received power for a 2.4 GHz link at 100 m with 20 dBm TX, 10 dBi TX gain, 3 dBi RX gain?"*
 
-Returns: FSPL, received power, wavelength, and optional antenna gain limit checks. The hard limit is `G_max = max((pi * D / lambda)^2, (ka)^2 + 2ka)` with `k = 2pi/lambda`, `a = D/2` — the larger of the eta = 1 aperture value and Harrington's bound for an antenna enclosed in a sphere of diameter D (the two agree for D >> lambda; Harrington governs for electrically small antennas, D < lambda). Gains above it are rejected; gains above the typical-efficiency value `0.55 * (pi * D / lambda)^2` are accepted with a warning. Also reports which bound applies (`limiting_bound`), warns inside the far-field distance `2D^2/lambda`, and rejects negative losses.
+Returns FSPL, received power, wavelength, and — when antenna diameters are supplied — gain limit checks. Gains above the hard bound `G_max = max((pi D / lambda)^2, (ka)^2 + 2ka)` (the eta = 1 aperture value, or Harrington's bound for electrically small antennas) are rejected; gains above the typical dish value (eta = 0.55) are accepted with a warning. Also warns inside the far-field distance `2D^2/lambda` and rejects negative losses.
 
 ### `shannon_hartley`
 
-Computes Shannon-Hartley channel capacity `C = B * log2(1 + SNR)` and validates throughput claims.
+Computes Shannon-Hartley channel capacity `C = B log2(1 + SNR)` and validates throughput claims.
 
 **Example:** *"Can a 20 MHz channel with 15 dB SNR support 500 Mbps?"*
 
-Returns: Theoretical capacity, spectral efficiency, and whether the claim is physically possible. Flags violations with the exact percentage by which the claim exceeds the Shannon limit.
+Returns theoretical capacity, spectral efficiency, and whether the claim is physically possible, including the exact percentage by which a violating claim exceeds the Shannon limit.
 
 ### `noise_floor`
 
-Computes thermal noise power `N = k_B * T * B`, cascades noise figures through multi-stage receivers using the Friis noise formula, and calculates receiver sensitivity.
+Computes thermal noise power `N = k_B T B`, cascades noise figures through multi-stage receivers with the Friis noise formula, and calculates receiver sensitivity.
 
-**Example:** *"What's the noise floor for a 1 MHz receiver at 290K with a two-stage LNA chain?"*
+**Example:** *"What's the noise floor for a 1 MHz receiver at 290 K with a two-stage LNA chain?"*
 
-Returns: Thermal noise in dBm and watts, cascaded noise figure, effective input noise temperature `T_e = 290 K * (F - 1)`, and receiver sensitivity.
+Returns thermal noise in dBm and watts, cascaded noise figure, effective input noise temperature `T_e = 290 K * (F - 1)`, and receiver sensitivity.
 
 ### `radar_range`
 
-Computes the monostatic radar range equation `R_max = [P_t G^2 lambda^2 sigma / ((4pi)^3 S_min L)]^(1/4)` and validates detection range claims.
+Computes the monostatic radar range equation `R_max = [P_t G^2 lambda^2 sigma / ((4pi)^3 S_min L)]^(1/4)` and validates detection-range claims.
 
 **Example:** *"Can a 1 kW X-band radar with 30 dBi gain detect a 0.01 m^2 drone at 200 km?"*
 
-Returns: Maximum detection range, minimum detectable signal, wavelength, and intermediate values. Catches the common fourth-root fallacy where doubling power is incorrectly assumed to double range.
+Returns maximum detection range, minimum detectable signal, wavelength, and intermediate values. Catches the common fourth-root fallacy that doubling power doubles range.
 
 ### `antenna_gain`
 
-Computes aperture gain limits, beamwidth and far-field distance for a single antenna given its diameter or physical area, and validates gain claims against the eta = 1 aperture value `(pi * D / lambda)^2` and Harrington's bound `(ka)^2 + 2ka`.
+Analyses a single antenna from its diameter or physical area: gain limits, beamwidth, and far-field distance, with optional validation of a claimed gain.
 
 **Example:** *"Can a 0.5 m dish at 12 GHz really give 50 dBi? What beamwidth should I expect?"*
 
-Returns: Physical gain limit, eta = 1 aperture value, Harrington bound and which one governs, typical gain at the given efficiency (default 0.55), effective aperture, half-power beamwidth (`70 lambda/D` tapered, `58.4 lambda/D` uniform), far-field distance `2D^2/lambda`, and for a claimed gain the implied aperture efficiency and validity.
+Returns the physical gain limit (aperture or Harrington bound, and which one governs), typical gain at the given efficiency (default 0.55), effective aperture, half-power beamwidth estimates, far-field distance `2D^2/lambda`, and — for a claimed gain — the implied aperture efficiency and validity.
 
 ### `radar_ambiguity`
 
-Computes pulse-Doppler radar ambiguity limits for a given carrier and PRF: maximum unambiguous range `R_ua = c / (2 PRF)`, unambiguous velocity `v_ua = lambda PRF / 4`, first blind speed `lambda PRF / 2`, target Doppler shift `f_d = 2 v_r / lambda` and aliasing, range resolution `c tau / 2` (or `c / 2B` with pulse compression), and the range-Doppler dilemma invariant `R_ua v_ua = c lambda / 8`.
+Computes pulse-Doppler ambiguity limits for a given carrier frequency and PRF.
 
 **Example:** *"Can a 10 GHz radar at 10 kHz PRF unambiguously measure a 500 m/s target out to 150 km?"*
 
-Returns: Unambiguous range and velocity, blind speed, Doppler shift and apparent (aliased) velocity, range resolution, minimum range, duty cycle, and the `c lambda / 8` invariant. Rejects unambiguous range, velocity or resolution claims that the PRF or pulse cannot support.
-
----
+Returns unambiguous range `R_ua = c / (2 PRF)`, unambiguous velocity `v_ua = lambda PRF / 4`, blind speed, Doppler shift and apparent (aliased) velocity, range resolution (`c tau / 2`, or `c / 2B` with pulse compression), minimum range, duty cycle, and the range-Doppler dilemma invariant `R_ua v_ua = c lambda / 8`. Rejects range, velocity, or resolution claims the PRF or pulse cannot support.
 
 ## Physics Guarantees
 
 Every calculation is validated against hard physical limits:
 
 - **Speed of light:** `c = 299,792,458 m/s` — no exceptions
-- **Thermal noise floor:** `N = -174 dBm/Hz` at 290K — the IEEE standard reference
-- **Shannon limit:** `C = B * log2(1 + SNR)` — no throughput claim exceeds this
-- **Antenna gain limit:** `G_max = max((pi * D / lambda)^2, (ka)^2 + 2ka)` — the eta = 1 aperture value for planar apertures and Harrington's bound for any antenna in a sphere of diameter D; eta = 0.55 is a warning threshold, not a limit
+- **Thermal noise floor:** `N = -174 dBm/Hz` at 290 K — the IEEE standard reference
+- **Shannon limit:** `C = B log2(1 + SNR)` — no throughput claim exceeds this
+- **Antenna gain limit:** `G_max = max((pi D / lambda)^2, (ka)^2 + 2ka)` — the eta = 1 aperture value for planar apertures and Harrington's bound for any antenna in a sphere of diameter D; eta = 0.55 is a warning threshold, not a limit
 - **Radar range equation:** `R_max = [P_t G^2 lambda^2 sigma / ((4pi)^3 S_min)]^(1/4)` — range obeys the fourth-root law
 - **Receiver sensitivity:** `S_min = k (T_A + T_0 (F - 1)) B * SNR` with `T_e = T_0 (F - 1)` referenced to 290 K
 - **Unambiguous range:** `R_ua = c / (2 PRF)` — echoes beyond it fold into a later pulse interval
@@ -144,18 +169,16 @@ Every calculation is validated against hard physical limits:
 
 Violations return structured `PhysicalViolationError` responses with LaTeX explanations, not silent failures.
 
----
-
-## Examples
-
-See PhysBound catching hallucinations in real time:
+## Examples and Documentation
 
 - **[Catching Hallucinations](examples/catching-hallucinations.md)** — walkthrough of five real LLM failure modes with full JSON responses
-- **[Interactive Demo Notebook](examples/physbound-demo.ipynb)** — hands-on Jupyter notebook calling the physics engines directly
-
----
+- **[Interactive Demo Notebook](examples/physbound-demo.ipynb)** — Jupyter notebook calling the physics engines directly
+- **[Formula Reference](docs/formulas.md)** — every formula, constant, and validation guard with sources
+- **[Changelog](CHANGELOG.md)** — release history
 
 ## Development
+
+Requires [uv](https://docs.astral.sh/uv/) and Python 3.12+ (CI covers 3.12–3.14):
 
 ```bash
 # Clone and install
@@ -163,26 +186,25 @@ git clone https://github.com/JonesRobM/physbound.git
 cd physbound
 uv sync --all-extras
 
-# Run tests
+# Run checks
 uv run pytest tests/ -v
+uv run ruff check src/ tests/
+uv run mypy src/physbound/
 
-# Print hallucination delta table
+# Regenerate the hallucination table above
 uv run pytest tests/test_marketing.py -s
 
-# Start MCP server locally
+# Start the MCP server locally
 uv run physbound
 ```
 
-## Why PhysBound?
+Contributions that expand the set of validated physics domains are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the architecture guide and the step-by-step recipe for adding a new validator.
 
-AI coding assistants are increasingly used in RF engineering, telecommunications, radar and signal processing workflows. But LLMs have no intrinsic understanding of physics. They generate plausible-sounding numbers that can violate fundamental laws like Shannon-Hartley, thermodynamic noise limits, antenna gain bounds and pulse-Doppler ambiguity limits.
-
-PhysBound acts as a **physics guardrail** for any MCP-compatible AI assistant. Every calculation is checked against CODATA physical constants via SciPy, with dimensional analysis enforced through Pint. Violations return structured errors with LaTeX explanations, not silent failures.
-
-### Use cases
+## Use Cases
 
 - **RF system design review** — validate link budgets, receiver sensitivity, and noise cascades
 - **Telecom proposal vetting** — catch impossible throughput claims before they reach a customer
+- **Radar system sizing** — sanity-check detection range, PRF selection, and ambiguity trade-offs
 - **Educational tools** — teach Shannon-Hartley, Friis transmission, and thermal noise with verified calculations
 - **CI/CD for physics** — integrate as a validation step in engineering pipelines
 
