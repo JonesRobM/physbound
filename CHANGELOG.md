@@ -16,6 +16,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 - Python 3.14 added to the CI test matrix and PyPI classifiers
 - 4 new hallucination cases (Starlink dish 50 dBi, 3 m dish far field at 10 m, 500 m/s at 10 kHz PRF, 150 km + 300 m/s at once): README table now has 16 rows
 - `tests/test_coverage_gaps.py` (diameter guard, >300 GHz warning, Shannon input validator branches, `server.main`), property tests for Harrington monotonicity / `2ka` gap / regime label, MCP integration tests for both new tools
+- **Command-line interface**: `physbound check <tool>` (`link-budget`, `shannon`, `noise`, `radar-range`, `antenna`, `radar-ambiguity`) runs the same validation code paths as the MCP tools from the terminal or CI — human-readable output by default, `--json` for the structured result, exit code 0 for valid, **1 for a physics violation**, 2 for usage errors; plus `physbound --version` and `physbound serve --transport {stdio,http} [--host] [--port]`. Bare `physbound` still starts the stdio MCP server, so existing client configs are unaffected
+- `py.typed` marker shipped in the wheel, making the `Typing :: Typed` classifier real for downstream type-checkers
+- MCP **resource** `docs://physbound/formulas` serving the full formula reference (packaged into the wheel as `physbound/data/formulas.md`), and MCP **prompts** `review_link_budget` and `validate_physics_claims`
+- Documentation site (mkdocs-material with MathJax) deployed to GitHub Pages via `.github/workflows/docs.yml`
+- Release automation: PyPI Trusted Publishing (OIDC, no token), GitHub Release with CHANGELOG-derived notes, and MCP-registry publish on version tags; Dependabot (uv + github-actions, grouped); 95% coverage floor in CI
+- Community files: `SECURITY.md`, issue templates (bug report, physics-domain request), PR template, `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1), `CITATION.cff`; VHS demo tape (`demo/demo.tape`)
+- Pre-commit `detect-secrets` baseline (`.secrets.baseline`) committed so the hook works for contributors
 
 ### Changed
 - **Aperture limit semantics**: the hard limit is the physical bound (`eta = 1` aperture value, now superseded by `max(aperture, Harrington)`); `eta = 0.55` is a *warning* threshold ("unusually efficient"), no longer a rejection. `aperture_efficiency` is validated `0 < eta <= 1` and only moves the warning threshold. Before/after for README rows: row 3 (0.3 m @ 1 GHz) limit 7.4 dBi (eta 0.55) -> 9.9 dBi (eta 1) -> **12.1 dBi** (Harrington); row 10 (0.1 m @ 900 MHz) −3.1 dBi -> −0.5 dBi -> **4.4 dBi**; 1 m @ 10 GHz 40.41 -> 40.49 dBi (large dishes change by < 0.1 dB)

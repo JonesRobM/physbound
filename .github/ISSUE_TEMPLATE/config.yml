@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and ideas (Discussions)
+    url: https://github.com/JonesRobM/physbound/discussions
+    about: Ask usage questions, share results, or discuss ideas that aren't yet concrete proposals.
+  - name: Documentation
+    url: https://github.com/JonesRobM/physbound#readme
+    about: Installation, the six tools, and worked examples are covered in the README and formula reference.
+  - name: Report a security vulnerability
+    url: https://github.com/JonesRobM/physbound/security/advisories/new
+    about: Please report security issues privately via GitHub Security Advisories, not a public issue.

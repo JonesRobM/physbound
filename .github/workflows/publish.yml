@@ -8,6 +8,19 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    # PyPI Trusted Publishing (OIDC) — no API token needed. `uv publish`
+    # uses trusted publishing automatically when no credentials are set.
+    #
+    # ONE-TIME SETUP (before the next tag): on pypi.org, add a Trusted
+    # Publisher to the "physbound" project — owner: JonesRobM,
+    # repository: physbound, workflow: publish.yml (no environment).
+    # If that isn't configured yet, temporarily restore token auth by
+    # adding these two lines back under the `uv publish` step:
+    #         env:
+    #           UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+    permissions:
+      id-token: write # mint the OIDC token for PyPI trusted publishing
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
@@ -15,5 +28,63 @@ jobs:
           python-version: "3.12"
       - run: uv build
       - run: uv publish
+      - name: Upload distributions for later jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release and upload assets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            index($0, "## [" ver "]") == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          if ! grep -q '[^[:space:]]' release-notes.md; then
+            echo "No CHANGELOG.md section found for ${VERSION}" >&2
+            echo "Release ${GITHUB_REF_NAME}" > release-notes.md
+          fi
+      - name: Create GitHub release
         env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file release-notes.md \
+            dist/*
+
+  mcp-registry:
+    # The MCP registry validates that the PyPI package exists, so this
+    # must run after the PyPI publish succeeds.
+    # NOTE: server.json's "version" (and packages[].version) must match
+    # the tag — bump server.json alongside pyproject.toml before tagging.
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # GitHub OIDC auth for mcp-publisher
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install mcp-publisher
+        run: >
+          curl -L
+          "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz"
+          | tar xz mcp-publisher
+      - name: Authenticate to MCP registry (GitHub OIDC)
+        run: ./mcp-publisher login github-oidc
+      - name: Publish server.json to MCP registry
+        run: ./mcp-publisher publish

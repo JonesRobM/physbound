@@ -1,0 +1,70 @@
+site_name: PhysBound
+site_description: >-
+  Physical Layer Linter — an MCP server that validates RF and physics
+  calculations against hard physical limits, catching AI hallucinations
+  in engineering workflows.
+site_url: https://jonesrobm.github.io/physbound/
+repo_url: https://github.com/JonesRobM/physbound
+repo_name: JonesRobM/physbound
+edit_uri: ""
+
+theme:
+  name: material
+  icon:
+    logo: material/antenna
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.footer
+    - navigation.top
+    - content.code.copy
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  # LaTeX math: renders $...$ / $$...$$ and \(...\) / \[...\] via MathJax
+  # (see docs/javascripts/mathjax.js for the matching delimiter config).
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/JonesRobM/physbound
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/physbound/
+
+nav:
+  - Home: index.md
+  - Installation: install.md
+  - CLI: cli.md
+  - Formula Reference: formulas.md

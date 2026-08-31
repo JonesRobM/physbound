@@ -1,0 +1,60 @@
+name: Physics domain request
+description: Propose a new physics validator (a new law, limit, or domain PhysBound should enforce)
+title: "[Domain]: "
+labels: ["enhancement", "physics-domain"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        PhysBound grows by validating more physics. A good proposal names a hard physical
+        law, gives the formulas with sources, and shows a real hallucination it would catch.
+        See [CONTRIBUTING.md](https://github.com/JonesRobM/physbound/blob/main/CONTRIBUTING.md)
+        for the architecture and the step-by-step recipe for adding a validator.
+  - type: input
+    id: law
+    attributes:
+      label: Physical law or limit
+      description: The law the validator would enforce.
+      placeholder: "e.g. Fried parameter / atmospheric seeing limit; Carnot efficiency; Nyquist sampling"
+    validations:
+      required: true
+  - type: textarea
+    id: formulas
+    attributes:
+      label: Formulas with sources
+      description: >-
+        The governing formulas, the meaning and units of each variable, and citations
+        (textbook chapter, standard, or paper) for every formula — PhysBound never
+        ships an unsourced formula.
+      placeholder: |
+        C = B * log2(1 + SNR)
+        Source: Shannon, "A Mathematical Theory of Communication", BSTJ 1948; Proakis, Digital Communications, Ch. 1
+    validations:
+      required: true
+  - type: textarea
+    id: hallucination
+    attributes:
+      label: Example hallucination it would catch
+      description: >-
+        A concrete, plausible-sounding claim an LLM makes that violates this law, together
+        with the correct value. This becomes a test case in `test_marketing.py`.
+      placeholder: |
+        LLM claim: "A 20 MHz channel with 15 dB SNR can achieve 500 Mbps"
+        Truth: Shannon limit is 100.6 Mbps
+    validations:
+      required: true
+  - type: textarea
+    id: io
+    attributes:
+      label: Proposed inputs and outputs
+      description: What parameters would the tool take, and what should it return or reject?
+      placeholder: |
+        Inputs: frequency_hz, aperture_m, claimed_resolution_arcsec
+        Outputs: diffraction_limit_arcsec, claim_is_valid
+        Violation: claimed resolution below the diffraction limit
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I am willing to implement this validator myself (with guidance)

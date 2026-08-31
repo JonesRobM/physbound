@@ -1,0 +1,30 @@
+cff-version: 1.2.0
+message: "If you use PhysBound in your work, please cite it as below."
+type: software
+title: "PhysBound"
+abstract: >-
+  Physical Layer Linter — an MCP server that validates RF and physics
+  calculations (link budgets, Shannon capacity, thermal noise, antenna
+  gain, radar range and ambiguity) against hard physical limits,
+  catching AI hallucinations in engineering workflows.
+authors:
+  - family-names: "Jones"
+    given-names: "Robert"
+version: "0.3.0"
+date-released: "2026-08-29"
+repository-code: "https://github.com/JonesRobM/physbound"
+url: "https://github.com/JonesRobM/physbound"
+license: MIT
+keywords:
+  - mcp
+  - model-context-protocol
+  - physics
+  - rf-engineering
+  - link-budget
+  - shannon-hartley
+  - thermal-noise
+  - antenna-gain
+  - radar
+  - pulse-doppler
+  - ai-hallucination
+  - validation

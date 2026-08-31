@@ -1,0 +1,27 @@
+version: 2
+updates:
+  # Python dependencies (pyproject.toml + uv.lock). Dependabot has a
+  # dedicated "uv" ecosystem for uv-managed projects — use it instead
+  # of "pip" so uv.lock is updated too.
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      python-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  # GitHub Actions used in .github/workflows/
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"

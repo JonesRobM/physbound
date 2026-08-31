@@ -9,6 +9,9 @@ Exposes six RF validation tools via the Model Context Protocol (MCP):
   6. radar_ambiguity — Pulse-Doppler unambiguous range/velocity, Doppler and resolution
 """
 
+import importlib.resources
+from pathlib import Path
+
 from fastmcp import FastMCP
 
 from physbound.engines import antenna as ant_engine
@@ -525,8 +528,65 @@ def radar_ambiguity(
         return e.to_dict()
 
 
+def _formulas_markdown() -> str:
+    """Load the formula reference, from the installed wheel or a dev checkout.
+
+    In a built wheel `docs/formulas.md` is force-included as
+    `physbound/data/formulas.md`; in a development checkout (editable install)
+    that file does not exist, so fall back to the repository's `docs/` copy.
+    """
+    packaged = importlib.resources.files("physbound").joinpath("data/formulas.md")
+    if packaged.is_file():
+        return packaged.read_text(encoding="utf-8")
+    repo_copy = Path(__file__).resolve().parents[2] / "docs" / "formulas.md"
+    return repo_copy.read_text(encoding="utf-8")
+
+
+@mcp.resource(
+    "docs://physbound/formulas",
+    name="formula_reference",
+    mime_type="text/markdown",
+    description=(
+        "PhysBound formula reference: every formula, physical constant, and "
+        "validation guard used by the six tools, with sources and worked examples."
+    ),
+)
+def formula_reference() -> str:
+    """Full formula reference for all PhysBound validation tools."""
+    return _formulas_markdown()
+
+
+@mcp.prompt
+def review_link_budget(link_budget: str) -> str:
+    """Review an RF link budget line by line with the PhysBound tools."""
+    return (
+        "You are reviewing an RF link budget as a sceptical RF engineer. "
+        "Use the physbound tools to validate every number: rf_link_budget for the "
+        "end-to-end budget, antenna_gain for each antenna gain claim, noise_floor "
+        "for noise figure and sensitivity values, and shannon_hartley for any "
+        "throughput claim. Report each physics violation with the violated law and "
+        "the computed limit, and list warnings even where a value is technically "
+        "possible but unusually optimistic.\n\n"
+        f"Link budget to review:\n{link_budget}"
+    )
+
+
+@mcp.prompt
+def validate_physics_claims(text: str) -> str:
+    """Extract every quantitative RF claim from a text and validate each one."""
+    return (
+        "Extract every quantitative RF/physics claim from the text below "
+        "(throughput, antenna gain, noise floor, receiver sensitivity, radar "
+        "detection range, unambiguous range/velocity, range resolution). Validate "
+        "each claim with the appropriate physbound tool and give a per-claim "
+        "verdict: VALID, VALID WITH WARNINGS, or VIOLATION (with the violated law "
+        "and the computed limit).\n\n"
+        f"Text to check:\n{text}"
+    )
+
+
 def main():
-    """Entry point for `physbound` console script and stdio MCP."""
+    """Entry point for stdio MCP serving (used by `physbound` with no arguments)."""
     mcp.run(transport="stdio")
 
 

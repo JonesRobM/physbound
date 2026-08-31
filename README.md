@@ -76,6 +76,27 @@ then set `"command": "physbound"` (with no `args`) in the client configuration.
 
 Once configured, ask your assistant an RF question — *"Can a 20 MHz channel with 15 dB SNR support 500 Mbps?"* — and it will answer with physics-validated numbers.
 
+## Command-Line Usage
+
+The same validators are available directly from the terminal — useful in scripts and CI pipelines, since a physics violation exits with code 1:
+
+```console
+$ physbound check shannon --bandwidth-hz 20e6 --snr-db 15 --claimed-throughput-bps 500e6
+PHYSICS VIOLATION [Shannon-Hartley Theorem]
+  Claimed throughput 500000000.0 bps exceeds Shannon limit of 100556153.5 bps by 397.2%
+  Computed limit: 1.00556e+08 bps
+  Claimed value:  5e+08 bps
+$ echo $?
+1
+```
+
+```console
+$ physbound check shannon --bandwidth-hz 20e6 --snr-db 15 --claimed-throughput-bps 100e6
+Shannon-Hartley Capacity: ...   # exit code 0
+```
+
+Available subcommands: `check {link-budget, shannon, noise, radar-range, antenna, radar-ambiguity}` (flags mirror the MCP tool parameters; add `--json` for the full structured result) and `serve --transport {stdio,http}` for running the MCP server over HTTP. See [`physbound check --help`](https://jonesrobm.github.io/physbound/cli/) for details.
+
 ## What LLMs Get Wrong
 
 Sixteen real hallucination patterns, each caught by PhysBound's test suite:
