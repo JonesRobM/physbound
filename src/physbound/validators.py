@@ -92,3 +92,27 @@ def validate_positive_rcs(rcs_m2: float) -> None:
             claimed_value=rcs_m2,
             unit="m^2",
         )
+
+
+def validate_positive_prf(prf_hz: float) -> None:
+    """Reject non-positive pulse repetition frequencies."""
+    if prf_hz <= 0:
+        raise PhysicalViolationError(
+            message=f"Pulse repetition frequency must be positive, got {prf_hz} Hz",
+            law_violated="Pulsed Radar Timing",
+            latex_explanation=r"$\text{PRF} > 0$ required; a pulsed radar must emit pulses",
+            claimed_value=prf_hz,
+            unit="Hz",
+        )
+
+
+def validate_positive_pulse_width(pulse_width_s: float) -> None:
+    """Reject non-positive pulse widths."""
+    if pulse_width_s <= 0:
+        raise PhysicalViolationError(
+            message=f"Pulse width must be positive, got {pulse_width_s} s",
+            law_violated="Pulsed Radar Timing",
+            latex_explanation=r"$\tau > 0$ required; a pulse must carry finite energy",
+            claimed_value=pulse_width_s,
+            unit="s",
+        )

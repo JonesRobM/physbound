@@ -1,7 +1,7 @@
 [project]
 name = "physbound"
-version = "0.2.0"
-description = "Physical Layer Linter — validates RF and physics calculations against hard physical limits"
+version = "0.3.0"
+description = "Physical Layer Linter — validates RF link budgets, Shannon capacity, noise floors, antenna gain and radar range/ambiguity claims against hard physical limits"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.12"
@@ -26,6 +26,10 @@ keywords = [
     "radar",
     "radar-range-equation",
     "radar-cross-section",
+    "doppler",
+    "pulse-doppler",
+    "antenna-gain",
+    "harrington-bound",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -35,27 +39,28 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Scientific/Engineering :: Information Analysis",
     "Topic :: Communications",
     "Typing :: Typed",
 ]
 dependencies = [
-    "fastmcp==2.14.5",
-    "pint==0.25.2",
-    "scipy==1.15.2",
-    "numpy==2.2.3",
+    "fastmcp>=3.4,<4",
+    "pint>=0.25",
+    "scipy>=1.15",
+    "numpy>=2.2",
     "pydantic>=2.10,<3",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest==8.3.5",
-    "pytest-cov==6.0.0",
+    "pytest>=9.1,<10",
+    "pytest-cov>=7.1,<8",
     "hypothesis>=6.100,<7",
-    "pre-commit==4.1.0",
-    "ruff==0.9.6",
-    "mypy==1.15.0",
+    "pre-commit>=4.6,<5",
+    "ruff>=0.16,<0.17",
+    "mypy>=2.3,<3",
     "python-dotenv>=1.1.0",
 ]
 

@@ -21,13 +21,19 @@ src/physbound/
   engines/
     constants.py         # CODATA constants via SciPy + Pint
     units.py             # Dimensional conversions
-    link_budget.py       # FSPL, aperture gain, Friis transmission
+    antenna.py           # Aperture gain, beamwidth, far-field distance
+    doppler.py           # Pulse-Doppler ambiguity, blind speeds, resolution
+    link_budget.py       # FSPL, aperture + Harrington gain limits, Friis transmission
     noise.py             # Thermal noise, Friis cascade, sensitivity
+    radar.py             # Monostatic radar range equation
     shannon.py           # Shannon-Hartley capacity
   models/
     common.py            # PhysBoundResult base class
+    antenna.py           # AntennaGainInput/Output
+    doppler.py           # RadarAmbiguityInput/Output
     link_budget.py       # LinkBudgetInput/Output
     noise.py             # NoiseFloorInput/Output
+    radar.py             # RadarRangeInput/Output
     shannon.py           # ShannonInput/Output
 ```
 

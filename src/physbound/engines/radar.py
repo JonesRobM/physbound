@@ -61,6 +61,21 @@ def compute_radar_range(
     validate_temperature(system_noise_temp_k)
     validate_positive_bandwidth(noise_bandwidth_hz)
 
+    if system_noise_temp_k == 0:
+        raise PhysicalViolationError(
+            message=(
+                "System noise temperature must be > 0 K for the radar range equation; "
+                "T_s = 0 K gives S_min = 0 W and an unbounded detection range"
+            ),
+            law_violated="Radar Range Equation",
+            latex_explanation=(
+                r"$S_{\min} = k_B T_s B_n\,\text{SNR}_{\min} / N \to 0$ as $T_s \to 0$, "
+                r"so $R_{\max} \to \infty$; a real receiver always has $T_s > 0$"
+            ),
+            claimed_value=system_noise_temp_k,
+            unit="K",
+        )
+
     if num_pulses < 1:
         raise PhysicalViolationError(
             message=f"Number of pulses must be >= 1, got {num_pulses}",
@@ -105,7 +120,8 @@ def compute_radar_range(
     if num_pulses > 1:
         warnings.append(
             f"Coherent integration of {num_pulses} pulses assumed "
-            f"(gain = N). Non-coherent integration yields gain = sqrt(N)."
+            f"(gain = N). Non-coherent integration yields a smaller gain, "
+            f"between sqrt(N) and N (Skolnik, Radar Handbook Ch. 2)."
         )
     if rcs_m2 > 100:
         warnings.append(

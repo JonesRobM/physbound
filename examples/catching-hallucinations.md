@@ -1,6 +1,6 @@
 # Catching LLM Hallucinations with PhysBound
 
-This walkthrough shows PhysBound correcting three common LLM physics hallucinations in real time via the MCP protocol.
+This walkthrough shows PhysBound correcting five common LLM physics hallucinations in real time via the MCP protocol.
 
 ---
 
@@ -65,12 +65,17 @@ PhysBound's `rf_link_budget` tool catches this when aperture checking is enabled
   "error": true,
   "violation_type": "PhysicalViolationError",
   "law_violated": "Antenna Aperture Limit",
-  "message": "TX antenna gain 45.0 dBi exceeds aperture limit of 7.4 dBi for 0.3 m dish at 1.00e+09 Hz",
-  "latex_explanation": "$G_{\\max} = \\eta \\left(\\frac{\\pi D}{\\lambda}\\right)^2 = 7.4\\,\\text{dBi}$"
+  "message": "TX antenna claimed gain 45.0 dBi exceeds the physical limit 12.1 dBi for a 0.3 m antenna at 1.000 GHz (Harrington bound (ka)^2 + 2ka with ka = 3.144; eta = 1 aperture value 9.9 dBi); it would require aperture efficiency eta = 3199.63 > 1 (typical eta = 0.55 gives 7.4 dBi)",
+  "latex": "$G_{\\max} = (ka)^2 + 2ka = 3.144^2 + 2 \\times 3.144 = 12.1\\,\\text{dBi}$ with $ka = \\pi D / \\lambda = \\pi \\times 0.3 / 0.2998$ (Harrington); the $\\eta = 1$ aperture value $(\\pi D/\\lambda)^2 = 9.9\\,\\text{dBi}$ (since $A_e \\leq A_{\\text{phys}}$). Claimed $45.0\\,\\text{dBi}$ requires $\\eta = 3199.63 > 1$.",
+  "computed_limit": 12.087,
+  "claimed_value": 45.0,
+  "unit": "dBi"
 }
 ```
 
-A 30 cm dish at 1 GHz has a wavelength of ~30 cm — meaning the dish is only about 1 wavelength across. The maximum achievable gain is **7.4 dBi**, not 45 dBi.
+A 30 cm dish at 1 GHz has a wavelength of ~30 cm — the dish is only about one wavelength across. A perfectly illuminated planar aperture (efficiency eta = 1) gives **9.9 dBi**; the rigorous bound for *any* antenna that fits in a 30 cm sphere is Harrington's `(ka)^2 + 2ka` = **12.1 dBi**; a realistic 55%-efficient dish gives **7.4 dBi**. 45 dBi would need an aperture efficiency of 3200, i.e. an effective area 3200 times the physical dish.
+
+PhysBound distinguishes the thresholds: a claim above the physical limit `max((pi D/lambda)^2, (ka)^2 + 2ka)` is a hard error, while a claim between the typical (eta = 0.55) value and the physical limit is accepted with a warning that it requires an unusually efficient (or non-planar, electrically small) antenna. The Harrington term matters for small antennas: a 2.15 dBi half-wave dipole in a 0.1 m footprint at 900 MHz has an eta = 1 aperture value of −0.5 dBi and would have been *falsely* rejected by the aperture formula alone; against the 4.4 dBi Harrington bound it is correctly accepted (`limiting_bound: "harrington"`).
 
 ---
 
@@ -126,15 +131,52 @@ PhysBound's `noise_floor` tool with cascading:
 ```json
 {
   "thermal_noise_dbm": -103.98,
-  "thermal_noise_watts": 3.99e-14,
+  "thermal_noise_watts": 4.004e-14,
   "cascaded_noise_figure_db": 1.66,
   "system_noise_temp_k": 135.03,
   "receiver_sensitivity_dbm": -92.31,
-  "human_readable": "Thermal Noise Floor:\n  Temperature: 290.0 K\n  Bandwidth:   10.000 MHz\n  Noise Power: -103.98 dBm (3.99e-14 W)\n  Cascaded NF: 1.66 dB\n  Sensitivity: -92.31 dBm"
+  "human_readable": "Thermal Noise Floor:\n  Temperature: 290.0 K\n  Bandwidth:   10.000 MHz\n  Noise Power: -103.98 dBm (4.004e-14 W)\n  Cascaded NF: 1.66 dB\n  T_e = T_0(F-1): 135.03 K\n  Sensitivity: -92.31 dBm"
 }
 ```
 
 The Friis noise cascade shows that the LNA's low noise figure dominates — the 8 dB mixer NF is suppressed by the LNA's 20 dB gain to contribute only ~0.16 dB to the system NF. This is why **LNA-first order matters** in receiver design.
+
+`system_noise_temp_k` is the receiver's effective input noise temperature `T_e = T_0 (F - 1) = 290 K x (1.466 - 1) = 135.0 K`. Noise figure is defined at `T_0 = 290 K`, so `T_e` is a property of the hardware and does not change if you point the antenna at a colder source: re-running with `temperature_k = 77` still reports `T_e = 135.0 K` (with a warning), and the sensitivity becomes `k_B (77 + 135) B x SNR` rather than the `N_floor(77 K) + NF` shortcut, which is only valid at 290 K.
+
+---
+
+## Scenario 5: Pulse-Doppler Radar Wants It All
+
+> **User to LLM:** "My 10 GHz radar runs at 10 kHz PRF. Can it unambiguously measure a 500 m/s target?"
+>
+> **LLM (without PhysBound):** "Yes, 10 kHz PRF comfortably covers 500 m/s."
+
+PhysBound's `radar_ambiguity` tool:
+
+```json
+{
+  "frequency_hz": 10000000000,
+  "prf_hz": 10000,
+  "claimed_unambiguous_velocity_m_s": 500.0
+}
+```
+
+**Response:**
+
+```json
+{
+  "error": true,
+  "violation_type": "PhysicalViolationError",
+  "law_violated": "Radar Doppler Ambiguity",
+  "message": "Claimed unambiguous velocity 500.00 m/s exceeds v_ua = lambda*PRF/4 = 74.95 m/s at 10.000 GHz, PRF 10000.0 Hz by 567.1%. The pulse train samples Doppler at PRF, so only |f_d| <= PRF/2 = 5000.0 Hz is unambiguous (first blind speed 149.90 m/s)",
+  "latex": "$v_{ua} = \\frac{\\lambda\\,\\text{PRF}}{4} = \\frac{0.0300 \\times 10000.0}{4} = 74.95\\,\\text{m/s}$; claimed $500.00\\,\\text{m/s}$ exceeds this by $567.1\\%$",
+  "computed_limit": 74.948,
+  "claimed_value": 500.0,
+  "unit": "m/s"
+}
+```
+
+At X-band (lambda = 3 cm) a 10 kHz PRF gives an unambiguous velocity of only **+/-74.9 m/s** (first blind speed 149.9 m/s) and an unambiguous range of **15.0 km**. A 500 m/s target aliases: its 33.3 kHz Doppler folds into the +/-5 kHz Nyquist band. Raising the PRF to cover 500 m/s would shrink the unambiguous range to ~2.2 km — the **range-Doppler dilemma**: `R_ua * v_ua = c * lambda / 8 = 1.12e6 m^2/s` for any PRF at 10 GHz, so no single PRF can give both 150 km and +/-300 m/s (that would need 4.5e7 m^2/s, 40x too large).
 
 ---
 
