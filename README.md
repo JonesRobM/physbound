@@ -22,6 +22,10 @@
 
 ---
 
+<p align="center">
+  <img src="demo/physbound-demo.gif" alt="PhysBound CLI catching a Shannon-Hartley violation" width="800">
+</p>
+
 LLMs generate plausible-sounding RF numbers that violate fundamental physics — throughput above the Shannon limit, antenna gains no aperture can produce, radar ranges the range equation forbids. PhysBound gives any MCP-compatible AI assistant six validated calculation tools, backed by CODATA constants (via SciPy) and dimensional analysis (via Pint). Impossible claims return structured `PhysicalViolationError` responses with the violated law, the computed limit, and a LaTeX explanation — not silent failures.
 
 | Tool | What it validates |
