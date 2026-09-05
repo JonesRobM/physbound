@@ -6,6 +6,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+### Added
+- **LLM demo harness** (`demo/llm/`): asks a real model an RF question through any OpenAI-compatible chat endpoint (stdlib HTTP only, no SDK), records every response verbatim with a conditions file (model, endpoint, exact prompt, sampling parameters, trial count, timestamp, SHA-256 of the responses), then lints each answer with the same physbound tool functions the CLI uses. `replay` (default) needs no network or key and shows trial 0 plus outcome counts across all trials; `summary` tabulates scenarios; `--list` shows every trial. Two scenarios (`wifi-throughput` on `shannon_hartley`, `dish-gain` on `antenna_gain`), a VHS tape (`demo/llm/demo.tape`), and `tests/test_llm_demo.py`
+
+### Changed
+- Ruff no longer lints Jupyter notebooks (`extend-exclude = ["*.ipynb"]`), so the demo notebook's long print lines do not fail pre-commit
+
 ## [0.3.0] - 2026-08-29
 
 ### Added

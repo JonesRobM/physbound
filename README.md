@@ -198,6 +198,7 @@ Violations return structured `PhysicalViolationError` responses with LaTeX expla
 
 - **[Catching Hallucinations](examples/catching-hallucinations.md)** — walkthrough of five real LLM failure modes with full JSON responses
 - **[Interactive Demo Notebook](examples/physbound-demo.ipynb)** — Jupyter notebook calling the physics engines directly
+- **[LLM Demo](demo/llm/README.md)** — a real model's answers, recorded unedited and linted by physbound, with outcome counts across trials
 - **[Formula Reference](docs/formulas.md)** — every formula, constant, and validation guard with sources
 - **[Changelog](CHANGELOG.md)** — release history
 

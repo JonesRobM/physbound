@@ -1,0 +1,23 @@
+{
+  "_comment": "Each scenario fixes every tool input except one claim. The model is asked the prompt (plus a fixed format suffix, see run.py FORMAT_SUFFIX); the harness extracts a single value in claim_unit from the answer and passes it as claim_arg to the named physbound tool.",
+  "scenarios": [
+    {
+      "id": "wifi-throughput",
+      "title": "Wi-Fi throughput: 20 MHz channel at 15 dB SNR",
+      "prompt": "What throughput can I expect from a 20 MHz 802.11n channel with 15 dB SNR?",
+      "tool": "shannon_hartley",
+      "fixed_args": {"bandwidth_hz": 20000000.0, "snr_db": 15.0},
+      "claim_arg": "claimed_throughput_bps",
+      "claim_unit": "bitrate"
+    },
+    {
+      "id": "dish-gain",
+      "title": "Antenna gain: 30 cm parabolic dish at 1 GHz",
+      "prompt": "What gain does a 30 cm parabolic dish antenna provide at 1 GHz?",
+      "tool": "antenna_gain",
+      "fixed_args": {"frequency_hz": 1000000000.0, "diameter_m": 0.3},
+      "claim_arg": "claimed_gain_dbi",
+      "claim_unit": "gain_dbi"
+    }
+  ]
+}

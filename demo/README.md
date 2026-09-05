@@ -7,3 +7,10 @@ Render it from the repository root (requires `vhs` and the `physbound` CLI, v0.3
 ```bash
 vhs demo/demo.tape
 ```
+
+## LLM demo
+
+`llm/` holds a second demo: a real language model is asked an RF question, every
+response is recorded verbatim, and each answer is linted by physbound. See
+[`llm/README.md`](llm/README.md) for the method, the honesty policy, and how to
+record and replay. Render with `vhs demo/llm/demo.tape`.
