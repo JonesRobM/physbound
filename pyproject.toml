@@ -46,7 +46,7 @@ classifiers = [
     "Typing :: Typed",
 ]
 dependencies = [
-    "fastmcp>=3.4,<4",
+    "fastmcp>=3.4,<5",
     "pint>=0.25",
     "scipy>=1.15",
     "numpy>=2.2",
